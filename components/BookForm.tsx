@@ -3,6 +3,7 @@ import { Book, BookStatus, UserProfile } from '../types';
 import { GENRES } from '../constants';
 import { X, Sparkles, Loader2 } from 'lucide-react';
 import { suggestBookDetails } from '../services/geminiService';
+import { showError } from '../src/utils/toast'; // Import toast utility
 
 interface BookFormProps {
   userId: UserProfile;
@@ -21,6 +22,7 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
   });
 
   const [aiLoading, setAiLoading] = useState(false);
+  const isApiKeyConfigured = !!process.env.API_KEY; // Check if API key is present
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -33,12 +35,15 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
   };
 
   const handleMagicFill = async () => {
-    if (!formData.title) { // Changed condition to only check for title
-      alert("Introduce el Título para usar la IA"); // Updated alert message
+    if (!isApiKeyConfigured) {
+      showError("La clave de la API de Gemini no está configurada. Consulta el README.md.");
+      return;
+    }
+    if (!formData.title) {
+      showError("Introduce el Título para usar la IA");
       return;
     }
     setAiLoading(true);
-    // Pass author as optional, it will be used if available
     const suggestion = await suggestBookDetails(formData.title, formData.author); 
     setAiLoading(false);
 
@@ -48,8 +53,10 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
         genre: suggestion.genre || prev.genre,
         totalPages: suggestion.totalPages || prev.totalPages,
         year: suggestion.year || prev.year,
-        notes: prev.notes ? prev.notes : suggestion.summary // Only fill if empty or append? Just fill if empty.
+        notes: prev.notes ? prev.notes : suggestion.summary
       }));
+    } else {
+        showError("No se pudieron obtener sugerencias de la IA. Inténtalo de nuevo más tarde.");
     }
   };
 
@@ -57,7 +64,6 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
     e.preventDefault();
     if (!formData.title || !formData.author || !formData.totalPages) return;
     
-    // Logic to set correct status based on pages/dates
     let finalStatus = formData.status;
     if (formData.currentPage && formData.currentPage > 0 && formData.currentPage < (formData.totalPages || 0)) {
         finalStatus = BookStatus.LEYENDO;
@@ -117,15 +123,20 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
               </div>
 
                {/* AI Magic Button */}
-               {!initialData && process.env.API_KEY && (
+               {!initialData && (
                 <button
                   type="button"
                   onClick={handleMagicFill}
-                  disabled={aiLoading}
-                  className="w-full py-2 px-4 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-lg hover:from-indigo-600 hover:to-purple-600 transition-all flex items-center justify-center gap-2 text-sm font-medium shadow-md"
+                  disabled={aiLoading || !isApiKeyConfigured}
+                  className={`w-full py-2 px-4 text-white rounded-lg transition-all flex items-center justify-center gap-2 text-sm font-medium shadow-md ${
+                    isApiKeyConfigured 
+                      ? 'bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600'
+                      : 'bg-gray-400 cursor-not-allowed'
+                  }`}
+                  title={!isApiKeyConfigured ? "Configura GEMINI_API_KEY en .env.local para usar la IA" : ""}
                 >
                   {aiLoading ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
-                  Autocompletar con IA
+                  {isApiKeyConfigured ? 'Autocompletar con IA' : 'Clave API de IA no configurada'}
                 </button>
               )}
 
