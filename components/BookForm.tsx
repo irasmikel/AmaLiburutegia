@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Book, BookStatus, UserProfile } from '../types';
 import { GENRES } from '../constants';
-import { X, Sparkles, Loader2 } from 'lucide-react';
+import { X, Sparkles, Loader2, Star } from 'lucide-react'; // Add Star icon
 import { suggestBookDetails } from '../services/geminiService';
 import { showError } from '../src/utils/toast.tsx'; // Update import path
 
@@ -244,16 +244,19 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
                         />
                     </div>
                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Valoración (1-5)</label>
-                        <input
-                        type="number"
-                        name="rating"
-                        min="1"
-                        max="5"
-                        value={formData.rating || ''}
-                        onChange={handleChange}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-earth-400 outline-none"
-                        />
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Valoración</label>
+                        <div className="flex items-center gap-1">
+                          {[1, 2, 3, 4, 5].map((starValue) => (
+                            <Star
+                              key={starValue}
+                              size={24}
+                              className={`cursor-pointer transition-colors ${
+                                (formData.rating || 0) >= starValue ? 'text-amber-400 fill-amber-400' : 'text-gray-300'
+                              }`}
+                              onClick={() => setFormData(prev => ({ ...prev, rating: starValue }))}
+                            />
+                          ))}
+                        </div>
                     </div>
                    </div>
                 </div>

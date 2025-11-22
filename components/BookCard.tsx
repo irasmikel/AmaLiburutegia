@@ -1,7 +1,7 @@
 import React from 'react';
 import { Book, BookStatus } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../constants';
-import { Edit2, Trash2, BookOpen, CheckCircle, Clock, Book as BookIconLucide } from 'lucide-react'; // Import BookIcon from lucide-react
+import { Edit2, Trash2, BookOpen, CheckCircle, Clock, Book as BookIconLucide, Star } from 'lucide-react'; // Import Star icon
 
 interface BookCardProps {
   book: Book;
@@ -105,11 +105,18 @@ const BookCard: React.FC<BookCardProps> = ({ book, onEdit, onDelete, onUpdatePro
             {book.status === BookStatus.TERMINADO && book.rating && (
                 <div className="flex items-center gap-1">
                     {[...Array(5)].map((_, i) => (
-                        <span key={i} className={`text-lg ${i < book.rating! ? 'text-amber-400' : 'text-stone-200'}`}>★</span>
+                        <Star key={i} size={18} className={`${i < book.rating! ? 'text-amber-400 fill-amber-400' : 'text-stone-200'}`} />
                     ))}
                 </div>
             )}
              
+            {book.status === BookStatus.TERMINADO && book.notes && (
+                <div className="text-sm text-stone-600 mt-2 line-clamp-3">
+                    <p className="font-medium mb-1">Notas:</p>
+                    <p>{book.notes}</p>
+                </div>
+            )}
+
              {book.status === BookStatus.POR_LEER && (
                  <div className="text-xs text-stone-400 flex items-center gap-1">
                     <span className="bg-stone-100 px-2 py-1 rounded">{book.genre}</span>
