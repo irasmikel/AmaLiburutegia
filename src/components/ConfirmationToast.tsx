@@ -16,30 +16,30 @@ const ConfirmationToast: React.FC<ConfirmationToastProps> = ({ t, message, onCon
     <div
       className={`${
         t.visible ? 'animate-enter' : 'animate-leave'
-      } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-stone-200`}
+      } max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto flex ring-1 ring-black ring-opacity-5`}
     >
       <div className="flex-1 w-0 p-4">
         <div className="flex items-start">
           <div className="flex-shrink-0 pt-0.5">
-            <AlertTriangle className="h-6 w-6 text-earth-500" aria-hidden="true" />
+            <AlertTriangle className="h-6 w-6 text-orange-400" aria-hidden="true" />
           </div>
           <div className="ml-3 flex-1">
-            <p className="text-sm font-medium text-stone-800">
+            <p className="text-sm font-medium text-gray-900">
               Confirmación
             </p>
-            <p className="mt-1 text-sm text-stone-600">
+            <p className="mt-1 text-sm text-gray-500">
               {message}
             </p>
           </div>
         </div>
       </div>
-      <div className="flex border-l border-stone-200">
+      <div className="flex border-l border-gray-200">
         <button
           onClick={() => {
             onConfirm();
             toast.dismiss(t.id);
           }}
-          className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-earth-600 hover:text-earth-700 focus:outline-none focus:ring-2 focus:ring-earth-500"
+          className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-emerald-600 hover:text-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
         >
           <Check size={18} className="mr-1" /> Sí
         </button>
@@ -48,7 +48,7 @@ const ConfirmationToast: React.FC<ConfirmationToastProps> = ({ t, message, onCon
             onCancel();
             toast.dismiss(t.id);
           }}
-          className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-stone-600 hover:text-stone-700 focus:outline-none focus:ring-2 focus:ring-stone-500"
+          className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-sm font-medium text-red-600 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-500"
         >
           <X size={18} className="mr-1" /> No
         </button>
