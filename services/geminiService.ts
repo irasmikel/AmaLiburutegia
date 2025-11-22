@@ -13,7 +13,7 @@ export const suggestBookDetails = async (title: string, author?: string) => {
 
   try {
     const model = 'gemini-2.5-flash';
-    const prompt = `Provide details for the book "${title}"${author ? ` by "${author}"` : ''}. Return JSON including title, author, genre, totalPages, year, publisher, isbn, and a short summary.`;
+    const prompt = `Provide details for the book "${title}"${author ? ` by "${author}"` : ''}. Return JSON including title, author, genre, totalPages, year, and a short summary.`;
     
     console.log("Sending prompt to Gemini:", prompt); // Log the prompt
 
@@ -30,8 +30,6 @@ export const suggestBookDetails = async (title: string, author?: string) => {
             genre: { type: Type.STRING, description: "Best matching genre from: Ficción, No Ficción, Romance, Thriller, Historia, Biografía, Fantasía, Ciencia Ficción, Clásicos, Autoayuda" },
             totalPages: { type: Type.INTEGER, description: "Estimated page count" },
             year: { type: Type.INTEGER, description: "Year of publication" },
-            publisher: { type: Type.STRING, description: "Publisher of the book" }, // Nuevo campo
-            isbn: { type: Type.STRING, description: "ISBN of the book" },           // Nuevo campo
             summary: { type: Type.STRING, description: "A very short 2 sentence summary in Spanish." }
           }
         }

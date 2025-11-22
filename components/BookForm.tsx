@@ -54,8 +54,6 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
           genre: suggestion.genre || prev.genre,
           totalPages: suggestion.totalPages || prev.totalPages,
           year: suggestion.year || prev.year,
-          publisher: suggestion.publisher || prev.publisher, // Nuevo campo
-          isbn: suggestion.isbn || prev.isbn,               // Nuevo campo
           notes: prev.notes ? prev.notes : suggestion.summary
         }));
       } else {
@@ -185,30 +183,6 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
                     <option key={g} value={g}>{g}</option>
                   ))}
                 </select>
-              </div>
-
-              {/* Nuevos campos: Editorial e ISBN */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Editorial</label>
-                <input
-                  type="text"
-                  name="publisher"
-                  value={formData.publisher || ''}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-earth-400 focus:border-transparent outline-none transition-all"
-                  placeholder="Ej. Penguin Random House"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">ISBN</label>
-                <input
-                  type="text"
-                  name="isbn"
-                  value={formData.isbn || ''}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-earth-400 focus:border-transparent outline-none transition-all"
-                  placeholder="Ej. 978-0345339683"
-                />
               </div>
             </div>
 

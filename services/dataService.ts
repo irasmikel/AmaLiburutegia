@@ -32,8 +32,6 @@ const mapRowToBook = (row: any): Book => ({
   review: row.review || undefined,
   startDate: row.start_date || undefined,
   finishDate: row.finish_date || undefined,
-  publisher: row.publisher || undefined, // Mapeo del nuevo campo
-  isbn: row.isbn || undefined,           // Mapeo del nuevo campo
   createdAt: row.created_at
 });
 
@@ -58,8 +56,6 @@ const mapBookToRow = (book: Partial<Book>) => {
     review: toNull(book.review),
     start_date: toNull(book.startDate),
     finish_date: toNull(book.finishDate),
-    publisher: toNull(book.publisher), // Mapeo del nuevo campo
-    isbn: toNull(book.isbn),           // Mapeo del nuevo campo
   };
   
   // Remove strictly undefined keys (but keep nulls so they clear fields in DB)
