@@ -1,0 +1,38 @@
+import { GoogleGenAI, Type } from "@google/genai";
+
+// NOTE: In a real environment, allow the user to input their key or use a proxy.
+// For this demo, we assume process.env.API_KEY is available or handle the failure gracefully.
+const apiKey = process.env.API_KEY || '';
+
+const ai = new GoogleGenAI({ apiKey });
+
+export const suggestBookDetails = async (title: string, author: string) => {
+  if (!apiKey) return null;
+
+  try {
+    const model = 'gemini-2.5-flash';
+    const prompt = `Provide details for the book "${title}" by "${author}". Return JSON.`;
+    
+    const response = await ai.models.generateContent({
+      model,
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            genre: { type: Type.STRING, description: "Best matching genre from: Ficción, No Ficción, Romance, Thriller, Historia, Biografía, Fantasía, Ciencia Ficción, Clásicos, Autoayuda" },
+            totalPages: { type: Type.INTEGER, description: "Estimated page count" },
+            year: { type: Type.INTEGER, description: "Year of publication" },
+            summary: { type: Type.STRING, description: "A very short 2 sentence summary in Spanish." }
+          }
+        }
+      }
+    });
+
+    return JSON.parse(response.text || '{}');
+  } catch (error) {
+    console.error("Gemini API Error:", error);
+    return null;
+  }
+};

@@ -1,0 +1,5 @@
+{
+  "name": "AmaLiburutegia",
+  "description": "Una aplicación de gestión de libros para Maixux y Arantxa, con seguimiento de lectura y estadísticas personales.",
+  "requestFramePermissions": []
+}
