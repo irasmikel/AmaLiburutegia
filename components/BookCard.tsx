@@ -1,7 +1,7 @@
 import React from 'react';
 import { Book, BookStatus } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../constants';
-import { Edit2, Trash2, BookOpen, CheckCircle, Clock } from 'lucide-react';
+import { Edit2, Trash2, BookOpen, CheckCircle, Clock, Book as BookIconLucide } from 'lucide-react'; // Import BookIcon from lucide-react
 
 interface BookCardProps {
   book: Book;
@@ -21,28 +21,47 @@ const BookCard: React.FC<BookCardProps> = ({ book, onEdit, onDelete, onUpdatePro
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-stone-100 hover:shadow-md transition-all duration-300 group flex flex-col h-full overflow-hidden">
-      {/* Card Header / Cover Placeholder */}
-      <div className="h-32 bg-earth-200 relative p-4 flex flex-col justify-end">
-        <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+      {/* Card Header / Cover */}
+      <div className="h-40 relative overflow-hidden rounded-t-xl"> {/* Increased height for better cover display */}
+        {book.coverUrl ? (
+          <img 
+            src={book.coverUrl} 
+            alt={`Portada de ${book.title}`} 
+            className="w-full h-full object-cover" 
+            onError={(e) => { 
+              // Fallback to generic icon if image fails to load
+              e.currentTarget.onerror = null; // Prevent infinite loop
+              e.currentTarget.src = ''; // Clear broken image src
+              e.currentTarget.style.display = 'none'; // Hide broken image
+              // The parent div will now show its default background if img is hidden
+            }}
+          />
+        ) : (
+          <div className="w-full h-full bg-earth-200 flex items-center justify-center">
+            <BookIconLucide size={64} className="text-earth-500 opacity-70" /> {/* Larger generic book icon */}
+          </div>
+        )}
+        
+        {/* Edit/Delete buttons */}
+        <div className="absolute top-2 right-2 p-1.5 bg-white/80 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 shadow-md z-10">
             <button 
                 onClick={(e) => { e.stopPropagation(); onEdit(book); }}
-                className="p-1.5 bg-white/90 rounded-full text-stone-600 hover:text-blue-600 shadow-sm"
+                className="p-1.5 rounded-md text-stone-600 hover:bg-stone-100 hover:text-blue-600 transition-colors"
+                title="Editar libro"
             >
-                <Edit2 size={14} />
+                <Edit2 size={16} />
             </button>
             <button 
-                 onClick={(e) => { e.stopPropagation(); onDelete(book.id); }} // Removed confirm() here
-                className="p-1.5 bg-white/90 rounded-full text-stone-600 hover:text-red-600 shadow-sm"
+                 onClick={(e) => { e.stopPropagation(); onDelete(book.id); }}
+                className="p-1.5 rounded-md text-stone-600 hover:bg-stone-100 hover:text-red-600 transition-colors"
+                title="Eliminar libro"
             >
-                <Trash2 size={14} />
+                <Trash2 size={16} />
             </button>
-        </div>
-        <div className="absolute -bottom-6 left-4 w-16 h-24 bg-stone-800 rounded-md shadow-lg flex items-center justify-center text-white font-serif text-2xl border-2 border-white">
-            {book.title.charAt(0)}
         </div>
       </div>
 
-      <div className="pt-8 px-4 pb-4 flex-1 flex flex-col">
+      <div className="p-4 flex-1 flex flex-col"> {/* Adjusted padding for consistent spacing */}
         <div className="mb-2">
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_COLORS[book.status]}`}>
                 <StatusIcon size={12} />
