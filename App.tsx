@@ -5,7 +5,7 @@ import * as DataService from './services/dataService';
 import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
 import Stats from './components/Stats';
-import MonthlyBooksReadChart from './components/MonthlyBooksReadChart'; // New import
+import MonthlyBooksReadChart from './src/components/MonthlyBooksReadChart'; // Corrected import path
 import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check } from 'lucide-react';
 import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx'; // Import toast utilities
 
