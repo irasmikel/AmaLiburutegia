@@ -33,6 +33,8 @@ create table if not exists public.books (
   review text,
   start_date date,
   finish_date date,
+  publisher text, -- Nuevo campo
+  isbn text,      -- Nuevo campo
   created_at timestamptz default now()
 );
 
@@ -49,6 +51,10 @@ on public.books
 for all 
 using (true) 
 with check (true);
+
+-- Opcional: Añadir las nuevas columnas a una tabla existente si ya la tienes
+-- ALTER TABLE public.books ADD COLUMN publisher text;
+-- ALTER TABLE public.books ADD COLUMN isbn text;
 `;
 
 function App() {
@@ -165,8 +171,14 @@ function App() {
 
   // Derived State
   const filteredBooks = books.filter(b => {
-    const matchesSearch = b.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          b.author.toLowerCase().includes(searchTerm.toLowerCase());
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    const matchesSearch = 
+      b.title.toLowerCase().includes(lowerSearchTerm) || 
+      b.author.toLowerCase().includes(lowerSearchTerm) ||
+      (b.publisher && b.publisher.toLowerCase().includes(lowerSearchTerm)) || // Búsqueda por editorial
+      (b.year && b.year.toString().includes(lowerSearchTerm)) ||             // Búsqueda por año
+      (b.isbn && b.isbn.toLowerCase().includes(lowerSearchTerm));           // Búsqueda por ISBN
+
     const matchesStatus = filterStatus === 'ALL' || b.status === filterStatus;
     const matchesGenre = filterGenre === 'ALL' || b.genre === filterGenre;
     return matchesSearch && matchesStatus && matchesGenre;
@@ -405,7 +417,7 @@ function App() {
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <input 
                                 type="text" 
-                                placeholder="Buscar por título o autor..."
+                                placeholder="Buscar por título, autor, editorial, año o ISBN..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-earth-300 transition-all"

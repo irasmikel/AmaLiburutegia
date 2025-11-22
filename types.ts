@@ -25,6 +25,8 @@ export interface Book {
   review?: string;
   startDate?: string;
   finishDate?: string;
+  publisher?: string; // Nuevo campo
+  isbn?: string;      // Nuevo campo
   createdAt: string;
 }
 
