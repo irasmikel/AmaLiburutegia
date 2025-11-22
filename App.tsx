@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { UserProfile, Book, BookStatus } from './types';
 import { GENRES } from './constants';
 import * as DataService from './services/dataService';
@@ -68,6 +68,10 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<BookStatus | 'ALL'>('ALL');
   const [filterGenre, setFilterGenre] = useState<string>('ALL');
+
+  // Sorting
+  const [sortField, setSortField] = useState<keyof Book>('createdAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     if (user) {
@@ -163,14 +167,51 @@ function App() {
     showSuccess('SQL copiado al portapapeles.');
   };
 
-  // Derived State
-  const filteredBooks = books.filter(b => {
-    const matchesSearch = b.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          b.author.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'ALL' || b.status === filterStatus;
-    const matchesGenre = filterGenre === 'ALL' || b.genre === filterGenre;
-    return matchesSearch && matchesStatus && matchesGenre;
-  });
+  // Derived State: Filter and then Sort books
+  const sortedAndFilteredBooks = useMemo(() => {
+    let currentBooks = [...books]; // Create a mutable copy
+
+    // Apply filters first
+    currentBooks = currentBooks.filter(b => {
+        const matchesSearch = b.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                              b.author.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesStatus = filterStatus === 'ALL' || b.status === filterStatus;
+        const matchesGenre = filterGenre === 'ALL' || b.genre === filterGenre;
+        return matchesSearch && matchesStatus && matchesGenre;
+    });
+
+    // Then apply sorting
+    currentBooks.sort((a, b) => {
+        let valA: any;
+        let valB: any;
+
+        switch (sortField) {
+            case 'title':
+            case 'author':
+                valA = a[sortField]?.toLowerCase() || '';
+                valB = b[sortField]?.toLowerCase() || '';
+                break;
+            case 'rating':
+                valA = a.rating || 0; // Treat undefined ratings as 0 for sorting
+                valB = b.rating || 0;
+                break;
+            case 'createdAt':
+                valA = a.createdAt;
+                valB = b.createdAt;
+                break;
+            default:
+                valA = a.title?.toLowerCase() || ''; // Default sort by title
+                valB = b.title?.toLowerCase() || '';
+                break;
+        }
+
+        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    return currentBooks;
+  }, [books, searchTerm, filterStatus, filterGenre, sortField, sortDirection]);
 
   const readingBooks = books.filter(b => b.status === BookStatus.LEYENDO);
 
@@ -399,7 +440,7 @@ function App() {
 
             {view === View.LIBRARY && (
                 <div className="space-y-6">
-                    {/* Filters */}
+                    {/* Filters and Sorting */}
                     <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-100 flex flex-col md:flex-row gap-4 items-center">
                         <div className="relative flex-1 w-full">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -430,6 +471,24 @@ function App() {
                                 <option value="ALL">Todos los géneros</option>
                                 {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
                             </select>
+                            <select
+                                value={sortField}
+                                onChange={(e) => setSortField(e.target.value as keyof Book)}
+                                className="px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm text-stone-700 focus:outline-none"
+                            >
+                                <option value="createdAt">Fecha de Adición</option>
+                                <option value="title">Título</option>
+                                <option value="author">Autor</option>
+                                <option value="rating">Calificación</option>
+                            </select>
+                            <select
+                                value={sortDirection}
+                                onChange={(e) => setSortDirection(e.target.value as 'asc' | 'desc')}
+                                className="px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm text-stone-700 focus:outline-none"
+                            >
+                                <option value="desc">Descendente</option>
+                                <option value="asc">Ascendente</option>
+                            </select>
                         </div>
                     </div>
 
@@ -438,7 +497,7 @@ function App() {
                             <div className="w-8 h-8 border-4 border-earth-200 border-t-earth-500 rounded-full animate-spin"></div>
                             <p>Cargando biblioteca...</p>
                          </div>
-                    ) : filteredBooks.length === 0 ? (
+                    ) : sortedAndFilteredBooks.length === 0 ? (
                         <div className="text-center py-20">
                             <p className="text-stone-500 text-lg mb-4">No se encontraron libros</p>
                              <button 
@@ -450,7 +509,7 @@ function App() {
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {filteredBooks.map(book => (
+                            {sortedAndFilteredBooks.map(book => (
                                 <BookCard 
                                     key={book.id} 
                                     book={book} 
