@@ -33,12 +33,13 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
   };
 
   const handleMagicFill = async () => {
-    if (!formData.title || !formData.author) {
-      alert("Introduce Título y Autor para usar la IA");
+    if (!formData.title) { // Changed condition to only check for title
+      alert("Introduce el Título para usar la IA"); // Updated alert message
       return;
     }
     setAiLoading(true);
-    const suggestion = await suggestBookDetails(formData.title, formData.author);
+    // Pass author as optional, it will be used if available
+    const suggestion = await suggestBookDetails(formData.title, formData.author); 
     setAiLoading(false);
 
     if (suggestion) {

@@ -6,12 +6,13 @@ const apiKey = process.env.API_KEY || '';
 
 const ai = new GoogleGenAI({ apiKey });
 
-export const suggestBookDetails = async (title: string, author: string) => {
+export const suggestBookDetails = async (title: string, author?: string) => {
   if (!apiKey) return null;
 
   try {
     const model = 'gemini-2.5-flash';
-    const prompt = `Provide details for the book "${title}" by "${author}". Return JSON.`;
+    // Adjusting the prompt to include author only if provided
+    const prompt = `Provide details for the book "${title}"${author ? ` by "${author}"` : ''}. Return JSON.`;
     
     const response = await ai.models.generateContent({
       model,
