@@ -6,6 +6,7 @@ import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
 import Stats from './components/Stats';
 import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check } from 'lucide-react';
+import { showSuccess, showError, showConfirmation } from './src/utils/toast'; // Import toast utilities
 
 enum View {
   DASHBOARD = 'DASHBOARD',
@@ -99,8 +100,10 @@ function App() {
     try {
       if ('id' in bookData) {
           await DataService.updateBook(bookData as Book);
+          showSuccess('Libro actualizado correctamente.');
       } else {
           await DataService.addBook(bookData);
+          showSuccess('Libro añadido correctamente.');
       }
       const updated = await DataService.getBooks(user!);
       setBooks(updated);
@@ -108,20 +111,29 @@ function App() {
       setEditingBook(undefined);
     } catch (err: any) {
       const msg = err.message || JSON.stringify(err);
-      alert(`No se pudo guardar el libro: ${msg}`);
+      showError(`No se pudo guardar el libro: ${msg}`);
     }
   };
 
   const handleDeleteBook = async (id: string) => {
-    if (!confirm('¿Seguro que quieres eliminar este libro?')) return;
-    setErrorMsg(null);
-    try {
-      await DataService.deleteBook(id);
-      const updated = await DataService.getBooks(user!);
-      setBooks(updated);
-    } catch (err: any) {
-      alert(`No se pudo eliminar: ${err.message}`);
-    }
+    showConfirmation(
+      '¿Estás seguro de que quieres eliminar este libro?',
+      async () => {
+        setErrorMsg(null);
+        try {
+          await DataService.deleteBook(id);
+          const updated = await DataService.getBooks(user!);
+          setBooks(updated);
+          showSuccess('Libro eliminado correctamente.');
+        } catch (err: any) {
+          showError(`No se pudo eliminar: ${err.message}`);
+        }
+      },
+      () => {
+        // User cancelled, do nothing or show a cancellation message
+        showError('Eliminación cancelada.');
+      }
+    );
   };
 
   const handleUpdateProgress = async (book: Book, newPage: number) => {
@@ -138,8 +150,9 @@ function App() {
       await DataService.updateBook(updatedBook);
       const updated = await DataService.getBooks(user!);
       setBooks(updated);
+      showSuccess('Progreso actualizado correctamente.');
     } catch (err: any) {
-      alert(`No se pudo actualizar el progreso: ${err.message}`);
+      showError(`No se pudo actualizar el progreso: ${err.message}`);
     }
   };
 
@@ -147,6 +160,7 @@ function App() {
     navigator.clipboard.writeText(SETUP_SQL);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    showSuccess('SQL copiado al portapapeles.');
   };
 
   // Derived State

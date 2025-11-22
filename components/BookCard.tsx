@@ -31,7 +31,7 @@ const BookCard: React.FC<BookCardProps> = ({ book, onEdit, onDelete, onUpdatePro
                 <Edit2 size={14} />
             </button>
             <button 
-                 onClick={(e) => { e.stopPropagation(); if(confirm('¿Seguro que quieres eliminar este libro?')) onDelete(book.id); }}
+                 onClick={(e) => { e.stopPropagation(); onDelete(book.id); }} // Removed confirm() here
                 className="p-1.5 bg-white/90 rounded-full text-stone-600 hover:text-red-600 shadow-sm"
             >
                 <Trash2 size={14} />
