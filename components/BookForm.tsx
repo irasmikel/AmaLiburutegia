@@ -44,19 +44,24 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
       return;
     }
     setAiLoading(true);
-    const suggestion = await suggestBookDetails(formData.title, formData.author); 
-    setAiLoading(false);
-
-    if (suggestion) {
-      setFormData(prev => ({
-        ...prev,
-        genre: suggestion.genre || prev.genre,
-        totalPages: suggestion.totalPages || prev.totalPages,
-        year: suggestion.year || prev.year,
-        notes: prev.notes ? prev.notes : suggestion.summary
-      }));
-    } else {
-        showError("No se pudieron obtener sugerencias de la IA. Inténtalo de nuevo más tarde.");
+    try {
+      const suggestion = await suggestBookDetails(formData.title, formData.author); 
+      if (suggestion) {
+        setFormData(prev => ({
+          ...prev,
+          genre: suggestion.genre || prev.genre,
+          totalPages: suggestion.totalPages || prev.totalPages,
+          year: suggestion.year || prev.year,
+          notes: prev.notes ? prev.notes : suggestion.summary
+        }));
+      } else {
+          // This else block might be reached if the API returns an empty object or non-parseable JSON
+          showError("No se pudieron obtener sugerencias de la IA. Inténtalo de nuevo más tarde.");
+      }
+    } catch (err: any) {
+      showError(err.message || "Error desconocido al obtener sugerencias de la IA.");
+    } finally {
+      setAiLoading(false);
     }
   };
 

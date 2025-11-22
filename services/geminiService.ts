@@ -7,7 +7,10 @@ const apiKey = process.env.API_KEY || '';
 const ai = new GoogleGenAI({ apiKey });
 
 export const suggestBookDetails = async (title: string, author?: string) => {
-  if (!apiKey) return null;
+  if (!apiKey) {
+    // This case should ideally be caught by BookForm's isApiKeyConfigured check
+    throw new Error("La clave de la API de Gemini no está configurada.");
+  }
 
   try {
     const model = 'gemini-2.5-flash';
@@ -32,8 +35,9 @@ export const suggestBookDetails = async (title: string, author?: string) => {
     });
 
     return JSON.parse(response.text || '{}');
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
-    return null;
+    // Re-throw the error with a more user-friendly message
+    throw new Error(`Error al conectar con la IA: ${error.message || JSON.stringify(error)}`);
   }
 };
