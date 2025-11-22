@@ -3,7 +3,7 @@ import { Book, BookStatus, UserProfile } from '../types';
 import { GENRES } from '../constants';
 import { X, Sparkles, Loader2 } from 'lucide-react';
 import { suggestBookDetails } from '../services/geminiService';
-import { showError } from '../src/utils/toast'; // Import toast utility
+import { showError } from '../src/utils/toast.tsx'; // Update import path
 
 interface BookFormProps {
   userId: UserProfile;

@@ -6,7 +6,7 @@ import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
 import Stats from './components/Stats';
 import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check } from 'lucide-react';
-import { showSuccess, showError, showConfirmation } from './src/utils/toast'; // Import toast utilities
+import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx'; // Update import path
 
 enum View {
   DASHBOARD = 'DASHBOARD',
