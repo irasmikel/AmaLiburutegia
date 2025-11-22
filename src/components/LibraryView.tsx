@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { Book, BookStatus, UserProfile } from '../../types';
 import { GENRES } from '../../constants';
-import BookCard from './BookCard';
+import BookCard from '../../components/BookCard'; // Corrected import path
 import BookCardSkeleton from './BookCardSkeleton';
 import { Search, BookOpen as BookOpenIcon } from 'lucide-react';
 
