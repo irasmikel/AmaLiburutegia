@@ -5,6 +5,7 @@ import * as DataService from './services/dataService';
 import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
 import Stats from './components/Stats';
+import MonthlyBooksReadChart from './components/MonthlyBooksReadChart'; // New import
 import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check } from 'lucide-react';
 import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx'; // Import toast utilities
 
@@ -215,6 +216,21 @@ function App() {
 
   const readingBooks = books.filter(b => b.status === BookStatus.LEYENDO);
 
+  // Derived State for Dashboard
+  const totalBooksInLibrary = books.length;
+  const currentYear = new Date().getFullYear();
+  const booksReadThisYear = books.filter(b => 
+    b.status === BookStatus.TERMINADO && 
+    b.finishDate && 
+    new Date(b.finishDate).getFullYear() === currentYear
+  ).length;
+  
+  const lastAddedBook = useMemo(() => {
+    // Assuming books are already sorted by createdAt desc from DataService.getBooks
+    return books.length > 0 ? books[0] : null;
+  }, [books]);
+
+
   // Renders
   if (!user) {
     return (
@@ -395,6 +411,38 @@ function App() {
                         </p>
                      </div>
 
+                     {/* New Dashboard Stats */}
+                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="bg-white p-5 rounded-xl border border-stone-100 shadow-sm">
+                            <p className="text-stone-500 text-sm font-medium">Total de Libros</p>
+                            <p className="text-3xl font-bold text-stone-800">{totalBooksInLibrary}</p>
+                        </div>
+                        <div className="bg-white p-5 rounded-xl border border-stone-100 shadow-sm">
+                            <p className="text-stone-500 text-sm font-medium">Leídos este Año ({currentYear})</p>
+                            <p className="text-3xl font-bold text-stone-800">{booksReadThisYear}</p>
+                        </div>
+                        <div className="bg-white p-5 rounded-xl border border-stone-100 shadow-sm">
+                            <p className="text-stone-500 text-sm font-medium">Libros Leyendo</p>
+                            <p className="text-3xl font-bold text-stone-800">{readingBooks.length}</p>
+                        </div>
+                        <div className="bg-white p-5 rounded-xl border border-stone-100 shadow-sm">
+                            <p className="text-stone-500 text-sm font-medium">Libros Pendientes</p>
+                            <p className="text-3xl font-bold text-stone-800">{books.filter(b => b.status === BookStatus.POR_LEER).length}</p>
+                        </div>
+                     </div>
+
+                     {lastAddedBook && (
+                        <div className="bg-white p-5 rounded-xl border border-stone-100 shadow-sm">
+                            <p className="text-stone-500 text-sm font-medium mb-2">Último Libro Añadido</p>
+                            <h4 className="text-xl font-bold text-stone-800">{lastAddedBook.title}</h4>
+                            <p className="text-stone-600 text-sm">por {lastAddedBook.author}</p>
+                        </div>
+                     )}
+
+                     {/* Monthly Books Read Chart in Dashboard */}
+                     <MonthlyBooksReadChart books={books} />
+
+                     {/* Existing "Leyendo Ahora" section */}
                      {readingBooks.length > 0 && (
                         <div>
                             <h3 className="text-lg font-bold text-stone-800 mb-4 flex items-center gap-2">
@@ -414,27 +462,6 @@ function App() {
                             </div>
                         </div>
                      )}
-
-                    {/* Quick Stats Preview */}
-                     <div>
-                         <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-lg font-bold text-stone-800 flex items-center gap-2">
-                                <span className="w-2 h-6 bg-earth-500 rounded-full"></span>
-                                Resumen Rápido
-                            </h3>
-                            <button onClick={() => setView(View.STATS)} className="text-sm text-earth-600 hover:underline">Ver todo</button>
-                         </div>
-                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            <div className="bg-white p-4 rounded-xl border border-stone-100 text-center">
-                                <p className="text-3xl font-bold text-stone-800">{books.filter(b => b.status === BookStatus.TERMINADO).length}</p>
-                                <p className="text-xs text-stone-500 uppercase tracking-wider mt-1">Leídos</p>
-                            </div>
-                            <div className="bg-white p-4 rounded-xl border border-stone-100 text-center">
-                                <p className="text-3xl font-bold text-stone-800">{books.filter(b => b.status === BookStatus.POR_LEER).length}</p>
-                                <p className="text-xs text-stone-500 uppercase tracking-wider mt-1">Pendientes</p>
-                            </div>
-                         </div>
-                     </div>
                 </div>
             )}
 
