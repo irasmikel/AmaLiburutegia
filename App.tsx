@@ -6,7 +6,7 @@ import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
 import Stats from './components/Stats';
 import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check } from 'lucide-react';
-import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx'; // Update import path
+import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx'; // Import toast utilities
 
 enum View {
   DASHBOARD = 'DASHBOARD',
@@ -180,7 +180,7 @@ function App() {
       <div className="min-h-screen bg-earth-50 flex items-center justify-center p-4">
         <div className="max-w-4xl w-full">
           <div className="text-center mb-12">
-             <h1 className="text-4xl md:text-5xl font-bold text-earth-800 mb-4 font-serif">AmaLiburutegia</h1>
+             <h1 className="text-4xl md:text-5xl font-bold text-earth-800 mb-4 font-serif">Liburutegia</h1>
              <p className="text-earth-600 text-lg">Selecciona tu perfil para entrar a tu biblioteca</p>
           </div>
           
@@ -276,7 +276,7 @@ function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-2xl">📚</span>
-            <span className="font-serif font-bold text-xl text-earth-900 hidden sm:inline">AmaLiburutegia</span>
+            <span className="font-serif font-bold text-xl text-earth-900 hidden sm:inline">Liburutegia</span>
           </div>
           
           <div className="flex items-center gap-4">
