@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Database, Copy, Check } from 'lucide-react';
-import { showSuccess } from '../src/utils/toast';
+import { showSuccess } from '../utils/toast'; // Corrected import path
 
 interface DatabaseSetupScreenProps {
   sqlScript: string;
