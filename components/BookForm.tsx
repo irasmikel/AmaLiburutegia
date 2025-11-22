@@ -49,13 +49,14 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
       if (suggestion) {
         setFormData(prev => ({
           ...prev,
+          title: suggestion.title || prev.title, // Also update title if AI provides a better one
+          author: suggestion.author || prev.author, // Set author from AI suggestion
           genre: suggestion.genre || prev.genre,
           totalPages: suggestion.totalPages || prev.totalPages,
           year: suggestion.year || prev.year,
           notes: prev.notes ? prev.notes : suggestion.summary
         }));
       } else {
-          // This else block might be reached if the API returns an empty object or non-parseable JSON
           showError("No se pudieron obtener sugerencias de la IA. Inténtalo de nuevo más tarde.");
       }
     } catch (err: any) {
