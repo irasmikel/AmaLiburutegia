@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Book, BookStatus } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../constants';
 import { Edit2, Trash2, BookOpen, CheckCircle, Clock } from 'lucide-react';
@@ -12,6 +12,7 @@ interface BookCardProps {
 
 const BookCard: React.FC<BookCardProps> = ({ book, onEdit, onDelete, onUpdateProgress }) => {
   const progressPercent = Math.min(100, Math.round(((book.currentPage || 0) / book.totalPages) * 100));
+  const [imageError, setImageError] = useState(false);
 
   const StatusIcon = {
     [BookStatus.POR_LEER]: Clock,
@@ -21,24 +22,35 @@ const BookCard: React.FC<BookCardProps> = ({ book, onEdit, onDelete, onUpdatePro
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-stone-100 hover:shadow-md transition-all duration-300 group flex flex-col h-full overflow-hidden">
-      {/* Card Header / Cover Placeholder */}
+      {/* Card Header / Cover */}
       <div className="h-32 bg-earth-200 relative p-4 flex flex-col justify-end">
         <div className="absolute top-0 right-0 p-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
             <button 
                 onClick={(e) => { e.stopPropagation(); onEdit(book); }}
-                className="p-1.5 bg-white/90 rounded-full text-stone-600 hover:text-blue-600 shadow-sm"
+                className="p-1.5 bg-white/90 rounded-full text-stone-600 hover:text-blue-600 hover:bg-white shadow-sm transition-colors"
+                title="Editar libro"
             >
                 <Edit2 size={14} />
             </button>
             <button 
-                 onClick={(e) => { e.stopPropagation(); onDelete(book.id); }} // Removed confirm() here
-                className="p-1.5 bg-white/90 rounded-full text-stone-600 hover:text-red-600 shadow-sm"
+                 onClick={(e) => { e.stopPropagation(); onDelete(book.id); }}
+                className="p-1.5 bg-white/90 rounded-full text-stone-600 hover:text-red-600 hover:bg-white shadow-sm transition-colors"
+                title="Eliminar libro"
             >
                 <Trash2 size={14} />
             </button>
         </div>
-        <div className="absolute -bottom-6 left-4 w-16 h-24 bg-stone-800 rounded-md shadow-lg flex items-center justify-center text-white font-serif text-2xl border-2 border-white">
-            {book.title.charAt(0)}
+        <div className="absolute -bottom-6 left-4 w-16 h-24 bg-stone-800 rounded-md shadow-lg flex items-center justify-center text-white font-serif text-2xl border-2 border-white overflow-hidden">
+            {book.coverUrl && !imageError ? (
+                <img 
+                    src={book.coverUrl} 
+                    alt={`Portada de ${book.title}`} 
+                    className="w-full h-full object-cover" 
+                    onError={() => setImageError(true)}
+                />
+            ) : (
+                <span className="text-white">{book.title.charAt(0)}</span>
+            )}
         </div>
       </div>
 

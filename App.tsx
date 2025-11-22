@@ -3,9 +3,10 @@ import { UserProfile, Book, BookStatus } from './types';
 import { GENRES } from './constants';
 import * as DataService from './services/dataService';
 import BookCard from './components/BookCard';
+import BookCardSkeleton from './src/components/BookCardSkeleton'; // Import the new skeleton component
 import BookForm from './components/BookForm';
 import Stats from './components/Stats';
-import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check } from 'lucide-react';
+import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check, BookOpen as BookOpenIcon } from 'lucide-react'; // Renamed Book to BookIcon to avoid conflict
 import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx'; // Import toast utilities
 
 enum View {
@@ -311,28 +312,28 @@ function App() {
             <div className="flex justify-around md:justify-start md:gap-4 p-2 md:p-0">
                 <button 
                     onClick={() => setView(View.DASHBOARD)}
-                    className={`flex flex-col md:flex-row items-center gap-1 md:gap-2 px-4 py-2 rounded-lg transition-colors ${view === View.DASHBOARD ? 'text-earth-700 bg-earth-100' : 'text-gray-500 hover:text-gray-900'}`}
+                    className={`flex flex-col md:flex-row items-center gap-1 md:gap-2 px-4 py-2 rounded-lg transition-colors ${view === View.DASHBOARD ? 'text-earth-700 bg-earth-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}
                 >
                     <LayoutGrid size={20} />
                     <span className="text-xs md:text-sm font-medium">Inicio</span>
                 </button>
                 <button 
                     onClick={() => setView(View.LIBRARY)}
-                    className={`flex flex-col md:flex-row items-center gap-1 md:gap-2 px-4 py-2 rounded-lg transition-colors ${view === View.LIBRARY ? 'text-earth-700 bg-earth-100' : 'text-gray-500 hover:text-gray-900'}`}
+                    className={`flex flex-col md:flex-row items-center gap-1 md:gap-2 px-4 py-2 rounded-lg transition-colors ${view === View.LIBRARY ? 'text-earth-700 bg-earth-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}
                 >
                     <BookIcon size={20} />
                     <span className="text-xs md:text-sm font-medium">Biblioteca</span>
                 </button>
                 <button 
                     onClick={() => setView(View.STATS)}
-                    className={`flex flex-col md:flex-row items-center gap-1 md:gap-2 px-4 py-2 rounded-lg transition-colors ${view === View.STATS ? 'text-earth-700 bg-earth-100' : 'text-gray-500 hover:text-gray-900'}`}
+                    className={`flex flex-col md:flex-row items-center gap-1 md:gap-2 px-4 py-2 rounded-lg transition-colors ${view === View.STATS ? 'text-earth-700 bg-earth-100' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'}`}
                 >
                     <BarChart2 size={20} />
                     <span className="text-xs md:text-sm font-medium">Estadísticas</span>
                 </button>
                  <button 
                     onClick={() => { setEditingBook(undefined); setIsFormOpen(true); }}
-                    className="md:ml-auto flex flex-col md:flex-row items-center gap-1 md:gap-2 px-4 py-2 rounded-lg bg-earth-600 text-white shadow-md hover:bg-earth-700 transition-colors"
+                    className="md:ml-auto flex flex-col md:flex-row items-center gap-1 md:gap-2 px-4 py-2 rounded-lg bg-earth-600 text-white shadow-md hover:bg-earth-700 transition-colors transform hover:scale-105"
                 >
                     <Plus size={20} />
                     <span className="text-xs md:text-sm font-medium">Añadir</span>
@@ -354,7 +355,17 @@ function App() {
                         </p>
                      </div>
 
-                     {readingBooks.length > 0 && (
+                     {loading ? (
+                        <div>
+                            <h3 className="text-lg font-bold text-stone-800 mb-4 flex items-center gap-2">
+                                <span className="w-2 h-6 bg-emerald-500 rounded-full"></span>
+                                Leyendo Ahora
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {[...Array(3)].map((_, i) => <BookCardSkeleton key={i} />)}
+                            </div>
+                        </div>
+                     ) : readingBooks.length > 0 && (
                         <div>
                             <h3 className="text-lg font-bold text-stone-800 mb-4 flex items-center gap-2">
                                 <span className="w-2 h-6 bg-emerald-500 rounded-full"></span>
@@ -415,7 +426,7 @@ function App() {
                             <select 
                                 value={filterStatus} 
                                 onChange={(e) => setFilterStatus(e.target.value as any)}
-                                className="px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm text-stone-700 focus:outline-none"
+                                className="px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm text-stone-700 focus:outline-none hover:border-earth-300 transition-colors"
                             >
                                 <option value="ALL">Todos los estados</option>
                                 <option value={BookStatus.POR_LEER}>Por Leer</option>
@@ -425,7 +436,7 @@ function App() {
                              <select 
                                 value={filterGenre} 
                                 onChange={(e) => setFilterGenre(e.target.value)}
-                                className="px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm text-stone-700 focus:outline-none"
+                                className="px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm text-stone-700 focus:outline-none hover:border-earth-300 transition-colors"
                             >
                                 <option value="ALL">Todos los géneros</option>
                                 {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
@@ -434,16 +445,20 @@ function App() {
                     </div>
 
                     {loading ? (
-                         <div className="text-center py-20 text-stone-400 flex flex-col items-center gap-2">
-                            <div className="w-8 h-8 border-4 border-earth-200 border-t-earth-500 rounded-full animate-spin"></div>
-                            <p>Cargando biblioteca...</p>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {[...Array(8)].map((_, i) => <BookCardSkeleton key={i} />)}
                          </div>
                     ) : filteredBooks.length === 0 ? (
-                        <div className="text-center py-20">
-                            <p className="text-stone-500 text-lg mb-4">No se encontraron libros</p>
+                        <div className="text-center py-20 bg-white rounded-xl shadow-sm border border-stone-100 p-8">
+                            <BookOpenIcon size={48} className="text-stone-300 mx-auto mb-4" />
+                            <p className="text-stone-500 text-lg mb-4">
+                                {searchTerm || filterStatus !== 'ALL' || filterGenre !== 'ALL'
+                                    ? "No se encontraron libros que coincidan con los filtros."
+                                    : "Aún no tienes libros en tu biblioteca."}
+                            </p>
                              <button 
                                 onClick={() => { setEditingBook(undefined); setIsFormOpen(true); }}
-                                className="px-4 py-2 bg-earth-600 text-white rounded-lg hover:bg-earth-700"
+                                className="px-4 py-2 bg-earth-600 text-white rounded-lg hover:bg-earth-700 transition-colors shadow-md"
                             >
                                 Añadir el primero
                             </button>
