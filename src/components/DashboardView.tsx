@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Book, BookStatus, UserProfile } from '../../types';
-import BookCard from './BookCard';
+import BookCard from '../../components/BookCard'; // Corrected import path
 import BookCardSkeleton from './BookCardSkeleton';
 import Stats from '../../components/Stats'; // Note: Stats is in the root components folder
 
