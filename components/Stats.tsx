@@ -25,38 +25,15 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
     const genreDistribution = Array.from(genreMap.entries())
         .map(([name, value]) => ({ name, value }))
         .sort((a, b) => b.value - a.value)
-        .slice(0, 5); // Top 5 genres
+        .slice(0, 5);
 
-    // Monthly Progress for the current year
-    const currentYear = new Date().getFullYear();
-    const monthlyCounts: { [key: string]: number } = {}; // e.g., { 'Ene': 5, 'Feb': 3 }
-    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-
-    finishedBooks.forEach(b => {
-      if (b.finishDate) {
-        const finishDate = new Date(b.finishDate);
-        if (finishDate.getFullYear() === currentYear) {
-          const monthIndex = finishDate.getMonth(); // 0-11
-          const monthKey = monthNames[monthIndex];
-          monthlyCounts[monthKey] = (monthlyCounts[monthKey] || 0) + 1;
-        }
-      }
-    });
-
-    const monthlyProgress = monthNames.map(name => ({
-      name,
-      count: monthlyCounts[name] || 0
-    }));
-
-    // Top Authors
-    const authorMap = new Map<string, number>();
-    finishedBooks.forEach(b => {
-        authorMap.set(b.author, (authorMap.get(b.author) || 0) + 1);
-    });
-    const topAuthors = Array.from(authorMap.entries())
-        .map(([name, count]) => ({ name, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 5); // Top 5 authors
+    // Monthly Progress (Simple Mock logic for demo - assumes standard date format)
+    // In real app, parse `finishDate` properly
+    const monthlyProgress = [
+        { name: 'Ene', count: 0 }, { name: 'Feb', count: 0 }, { name: 'Mar', count: 0 },
+        { name: 'Abr', count: 0 }, { name: 'May', count: 0 }, { name: 'Jun', count: 0 }
+    ];
+    // Fill with real data if available in finishDate
 
     return {
       totalBooks: finishedBooks.length,
@@ -67,13 +44,12 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       streakDays: readingBooks.length > 0 ? 5 : 0, // Mock streak
       genreDistribution,
       monthlyProgress,
-      topAuthors
+      topAuthors: []
     };
   };
 
   const stats = calculateStats();
   const COLORS = ['#b5763e', '#c28e50', '#d1aa78', '#e0c7a8', '#ede0d4'];
-  const currentYear = new Date().getFullYear(); // Get current year for chart title
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
@@ -123,79 +99,29 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
         <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
             <h3 className="text-lg font-bold text-stone-800 mb-6">Géneros Favoritos</h3>
             <div className="h-64 w-full">
-                {stats.genreDistribution.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={stats.genreDistribution} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                            <XAxis type="number" hide />
-                            <YAxis type="category" dataKey="name" width={100} tick={{fontSize: 12, fill: '#78716c'}} />
-                            <Tooltip 
-                                cursor={{fill: 'transparent'}}
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                            />
-                            <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
-                                {stats.genreDistribution.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                ) : (
-                    <div className="h-full w-full flex items-center justify-center text-stone-400 bg-stone-50 rounded-lg border border-dashed border-stone-200">
-                        <p>No hay datos de géneros.</p>
-                    </div>
-                )}
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={stats.genreDistribution} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                        <XAxis type="number" hide />
+                        <YAxis type="category" dataKey="name" width={100} tick={{fontSize: 12, fill: '#78716c'}} />
+                        <Tooltip 
+                            cursor={{fill: 'transparent'}}
+                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                        />
+                        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                            {stats.genreDistribution.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
             </div>
         </div>
 
         <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
-             <h3 className="text-lg font-bold text-stone-800 mb-6">Libros Leídos por Mes ({currentYear})</h3>
-             <div className="h-64 w-full">
-                {stats.monthlyProgress.some(m => m.count > 0) ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={stats.monthlyProgress} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                            <XAxis dataKey="name" tick={{fontSize: 12, fill: '#78716c'}} />
-                            <YAxis allowDecimals={false} tick={{fontSize: 12, fill: '#78716c'}} />
-                            <Tooltip 
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                formatter={(value: number) => [`${value} libros`, 'Total']}
-                            />
-                            <Line type="monotone" dataKey="count" stroke="#b5763e" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                        </LineChart>
-                    </ResponsiveContainer>
-                ) : (
-                    <div className="h-full w-full flex items-center justify-center text-stone-400 bg-stone-50 rounded-lg border border-dashed border-stone-200">
-                        <p>No hay datos de libros terminados este año.</p>
-                    </div>
-                )}
+             <h3 className="text-lg font-bold text-stone-800 mb-6">Actividad (Ejemplo)</h3>
+             <div className="h-64 w-full flex items-center justify-center text-stone-400 bg-stone-50 rounded-lg border border-dashed border-stone-200">
+                <p>Gráfico de actividad mensual (Próximamente)</p>
              </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
-            <h3 className="text-lg font-bold text-stone-800 mb-6">Autores Más Leídos</h3>
-            <div className="h-64 w-full">
-                {stats.topAuthors.length > 0 ? (
-                    <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={stats.topAuthors} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                            <XAxis type="number" hide />
-                            <YAxis type="category" dataKey="name" width={100} tick={{fontSize: 12, fill: '#78716c'}} />
-                            <Tooltip 
-                                cursor={{fill: 'transparent'}}
-                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                                formatter={(value: number) => [`${value} libros`, 'Total']}
-                            />
-                            <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
-                                {stats.topAuthors.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
-                ) : (
-                    <div className="h-full w-full flex items-center justify-center text-stone-400 bg-stone-50 rounded-lg border border-dashed border-stone-200">
-                        <p>No hay datos de autores leídos.</p>
-                    </div>
-                )}
-            </div>
         </div>
       </div>
     </div>
