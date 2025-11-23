@@ -128,12 +128,12 @@ export const deleteBook = async (bookId: string): Promise<void> => {
 const SHARED_FILES_BUCKET = 'shared-files';
 
 export const uploadFile = async (file: File): Promise<SharedFile> => {
-  const fileName = `${Date.now()}-${file.name}`; // Unique file name
+  const fileName = file.name; // Usar el nombre original del archivo
   const { data, error } = await supabase.storage
     .from(SHARED_FILES_BUCKET)
     .upload(fileName, file, {
       cacheControl: '3600',
-      upsert: false,
+      upsert: true, // Cambiado a 'true' para permitir sobrescribir si el nombre ya existe
     });
 
   if (error) {
