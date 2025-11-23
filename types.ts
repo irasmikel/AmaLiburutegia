@@ -39,3 +39,11 @@ export interface StatData {
   monthlyProgress: { name: string; count: number }[];
   topAuthors: { name: string; count: number }[];
 }
+
+export interface SharedFile {
+  name: string;
+  path: string;
+  url: string;
+  size?: number;
+  createdAt?: string;
+}

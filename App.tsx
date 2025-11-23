@@ -5,13 +5,15 @@ import * as DataService from './services/dataService';
 import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
 import Stats from './components/Stats';
-import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check } from 'lucide-react';
+import SharedFiles from './src/components/SharedFiles'; // Import the new component
+import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check, FolderOpen } from 'lucide-react'; // Add FolderOpen icon
 import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx'; // Import toast utilities
 
 enum View {
   DASHBOARD = 'DASHBOARD',
   LIBRARY = 'LIBRARY',
-  STATS = 'STATS'
+  STATS = 'STATS',
+  SHARED_FILES = 'SHARED_FILES' // Add new view
 }
 
 // SQL for the user to copy if tables are missing
@@ -25,7 +27,7 @@ create table if not exists public.books (
   total_pages integer not null,
   current_page integer default 0,
   genre text,
-  status text not null,
+  status text,
   cover_url text,
   notes text,
   year integer,
@@ -49,6 +51,31 @@ on public.books
 for all 
 using (true) 
 with check (true);
+
+-- 4. Crea el bucket de almacenamiento para archivos compartidos (si no existe)
+insert into storage.buckets (id, name, public)
+values ('shared-files', 'shared-files', true)
+on conflict (id) do nothing;
+
+-- 5. Configura las políticas de seguridad para el bucket 'shared-files'
+-- Permite a todos subir archivos
+drop policy if exists "Allow authenticated uploads" on storage.objects;
+create policy "Allow authenticated uploads"
+on storage.objects for insert
+to authenticated
+with check (bucket_id = 'shared-files');
+
+-- Permite a todos ver archivos
+drop policy if exists "Allow public access" on storage.objects;
+create policy "Allow public access"
+on storage.objects for select
+using (bucket_id = 'shared-files');
+
+-- Permite a todos eliminar archivos
+drop policy if exists "Allow public delete" on storage.objects;
+create policy "Allow public delete"
+on storage.objects for delete
+using (bucket_id = 'shared-files');
 `;
 
 function App() {
@@ -371,6 +398,13 @@ function App() {
                     <BarChart2 size={20} />
                     <span className="text-xs md:text-sm font-medium">Estadísticas</span>
                 </button>
+                <button 
+                    onClick={() => setView(View.SHARED_FILES)} // New navigation button
+                    className={`flex flex-col md:flex-row items-center gap-1 md:gap-2 px-4 py-2 rounded-lg transition-colors ${view === View.SHARED_FILES ? 'text-earth-700 bg-earth-100' : 'text-gray-500 hover:text-gray-900'}`}
+                >
+                    <FolderOpen size={20} />
+                    <span className="text-xs md:text-sm font-medium">Archivos</span>
+                </button>
                  <button 
                     onClick={() => { setEditingBook(undefined); setIsFormOpen(true); }}
                     className="md:ml-auto flex flex-col md:flex-row items-center gap-1 md:gap-2 px-4 py-2 rounded-lg bg-earth-600 text-white shadow-md hover:bg-earth-700 transition-colors"
@@ -525,6 +559,10 @@ function App() {
 
             {view === View.STATS && (
                 <Stats books={books} />
+            )}
+
+            {view === View.SHARED_FILES && ( // Render the new component
+                <SharedFiles />
             )}
         </div>
 
