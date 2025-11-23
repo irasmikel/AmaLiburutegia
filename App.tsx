@@ -58,11 +58,11 @@ values ('shared-files', 'shared-files', true)
 on conflict (id) do nothing;
 
 -- 5. Configura las políticas de seguridad para el bucket 'shared-files'
--- Permite a todos subir archivos
-drop policy if exists "Allow authenticated uploads" on storage.objects;
-create policy "Allow authenticated uploads"
+-- Permite a todos subir archivos (cambiado de 'authenticated' a 'public')
+drop policy if exists "Allow public uploads" on storage.objects;
+create policy "Allow public uploads"
 on storage.objects for insert
-to authenticated
+to public
 with check (bucket_id = 'shared-files');
 
 -- Permite a todos ver archivos
