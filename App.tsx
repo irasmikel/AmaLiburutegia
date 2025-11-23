@@ -5,7 +5,7 @@ import * as DataService from './services/dataService';
 import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
 import Stats from './components/Stats';
-import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check } from 'lucide-react';
+import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check, Users } from 'lucide-react';
 import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx'; // Import toast utilities
 
 enum View {
@@ -25,7 +25,7 @@ create table if not exists public.books (
   total_pages integer not null,
   current_page integer default 0,
   genre text,
-  status text not null,
+  status text,
   cover_url text,
   notes text,
   year integer,
@@ -53,6 +53,7 @@ with check (true);
 
 function App() {
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [currentLibrary, setCurrentLibrary] = useState<'personal' | 'shared'>('personal'); // New state for library context
   const [view, setView] = useState<View>(View.DASHBOARD);
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(false);
@@ -73,13 +74,15 @@ function App() {
   const [sortField, setSortField] = useState<keyof Book>('createdAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
+  const activeUserId = currentLibrary === 'personal' ? user : UserProfile.SHARED;
+
   useEffect(() => {
-    if (user) {
+    if (activeUserId) {
       setLoading(true);
       setErrorMsg(null);
       setSetupRequired(false);
       
-      DataService.getBooks(user)
+      DataService.getBooks(activeUserId)
         .then(data => {
           setBooks(data);
           setLoading(false);
@@ -96,20 +99,21 @@ function App() {
           setLoading(false);
         });
     }
-  }, [user]);
+  }, [activeUserId]); // Depend on activeUserId
 
   // Actions
   const handleSaveBook = async (bookData: Book | Omit<Book, 'id' | 'createdAt'>) => {
     setErrorMsg(null);
     try {
-      if ('id' in bookData) {
-          await DataService.updateBook(bookData as Book);
+      const bookToSave = { ...bookData, userId: activeUserId! }; // Ensure correct userId is set
+      if ('id' in bookToSave) {
+          await DataService.updateBook(bookToSave as Book);
           showSuccess('Libro actualizado correctamente.');
       } else {
-          await DataService.addBook(bookData);
+          await DataService.addBook(bookToSave);
           showSuccess('Libro añadido correctamente.');
       }
-      const updated = await DataService.getBooks(user!);
+      const updated = await DataService.getBooks(activeUserId!);
       setBooks(updated);
       setIsFormOpen(false);
       setEditingBook(undefined);
@@ -126,7 +130,7 @@ function App() {
         setErrorMsg(null);
         try {
           await DataService.deleteBook(id);
-          const updated = await DataService.getBooks(user!);
+          const updated = await DataService.getBooks(activeUserId!);
           setBooks(updated);
           showSuccess('Libro eliminado correctamente.');
         } catch (err: any) {
@@ -152,7 +156,7 @@ function App() {
     const updatedBook = { ...book, currentPage: newPage, status: newStatus };
     try {
       await DataService.updateBook(updatedBook);
-      const updated = await DataService.getBooks(user!);
+      const updated = await DataService.getBooks(activeUserId!);
       setBooks(updated);
       showSuccess('Progreso actualizado correctamente.');
     } catch (err: any) {
@@ -321,6 +325,26 @@ function App() {
           </div>
           
           <div className="flex items-center gap-4">
+             {/* Library Selector */}
+             <div className="flex bg-earth-100 rounded-full p-1">
+                <button
+                    onClick={() => setCurrentLibrary('personal')}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        currentLibrary === 'personal' ? 'bg-white text-earth-800 shadow-sm' : 'text-earth-600 hover:bg-earth-200'
+                    }`}
+                >
+                    Mi Biblioteca
+                </button>
+                <button
+                    onClick={() => setCurrentLibrary('shared')}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        currentLibrary === 'shared' ? 'bg-white text-earth-800 shadow-sm' : 'text-earth-600 hover:bg-earth-200'
+                    }`}
+                >
+                    <Users size={16} className="inline-block mr-1" /> Compartida
+                </button>
+             </div>
+
              <div className="flex items-center gap-2 px-3 py-1.5 bg-earth-100 rounded-full">
                 <span className="text-sm font-medium text-earth-800">{user}</span>
                 <button 
@@ -531,9 +555,9 @@ function App() {
       </main>
 
       {/* Modal */}
-      {isFormOpen && user && (
+      {isFormOpen && activeUserId && (
         <BookForm 
-            userId={user} 
+            userId={activeUserId} // Pass the activeUserId to the form
             initialData={editingBook} 
             onClose={() => { setIsFormOpen(false); setEditingBook(undefined); }} 
             onSave={handleSaveBook}

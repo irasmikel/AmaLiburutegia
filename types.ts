@@ -1,6 +1,7 @@
 export enum UserProfile {
   MAIXUX = 'Maixux',
-  ARANTXA = 'Arantxa'
+  ARANTXA = 'Arantxa',
+  SHARED = 'Compartido' // Nuevo perfil para la biblioteca común
 }
 
 export enum BookStatus {
