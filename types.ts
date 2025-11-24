@@ -38,6 +38,12 @@ export interface StatData {
   genreDistribution: { name: string; value: number }[];
   monthlyProgress: { name: string; count: number }[];
   topAuthors: { name: string; count: number }[];
+  // New fields for fun facts
+  totalLengthMeters: number;
+  continuousReadingDays: number;
+  favoriteGenreName: string;
+  favoriteGenrePercentage: number;
+  monthlyComparisonPercentage: number;
 }
 
 export interface SharedFile {

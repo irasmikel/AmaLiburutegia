@@ -1,7 +1,7 @@
 import React from 'react';
 import { Book, BookStatus, StatData } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid } from 'recharts';
-import { Trophy, BookOpen, Layers, Clock, Users } from 'lucide-react';
+import { Trophy, BookOpen, Layers, Clock, Users, Lightbulb } from 'lucide-react'; // Added Lightbulb icon
 
 interface StatsProps {
   books: Book[];
@@ -14,8 +14,9 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
     const readingBooks = books.filter(b => b.status === BookStatus.LEYENDO);
     const toReadBooks = books.filter(b => b.status === BookStatus.POR_LEER);
 
-    const totalPages = finishedBooks.reduce((acc, curr) => acc + curr.totalPages, 0) + 
-                       readingBooks.reduce((acc, curr) => acc + (curr.currentPage || 0), 0);
+    const totalPagesFinished = finishedBooks.reduce((acc, curr) => acc + curr.totalPages, 0);
+    const totalPagesReading = readingBooks.reduce((acc, curr) => acc + (curr.currentPage || 0), 0);
+    const totalPagesOverall = books.reduce((acc, curr) => acc + curr.totalPages, 0); // Total pages of all books
 
     // Genre Distribution
     const genreMap = new Map<string, number>();
@@ -74,17 +75,59 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
             return dateA.getTime() - dateB.getTime();
         });
 
+    // --- Datos Curiosos Calculations ---
+    const totalBooksInLibrary = books.length;
+
+    // 1. "Si pusieras todos los libros en fila medirían X metros"
+    const pageThicknessMm = 0.1; // Average thickness per page
+    const totalLengthMeters = (totalPagesOverall * pageThicknessMm) / 1000; // Convert mm to meters
+
+    // 2. "Has leído el equivalente a X días de lectura continua"
+    const readingSpeedPagesPerHour = 40; // Average reading speed
+    const totalReadingHours = totalPagesOverall / readingSpeedPagesPerHour;
+    const continuousReadingDays = totalReadingHours / 24;
+
+    // 3. "Tu categoría favorita representa X% de tu biblioteca"
+    let favoriteGenreName = 'N/A';
+    let favoriteGenrePercentage = 0;
+    if (genreDistribution.length > 0 && totalBooksInLibrary > 0) {
+        const topGenre = genreDistribution[0]; // Already sorted by value
+        favoriteGenreName = topGenre.name;
+        favoriteGenrePercentage = (topGenre.value / totalBooksInLibrary) * 100;
+    }
+
+    // 4. "Este mes leíste un X% más que el anterior"
+    let monthlyComparisonPercentage = 0;
+    if (monthlyProgress.length >= 2) {
+        const currentMonthCount = monthlyProgress[monthlyProgress.length - 1].count;
+        const previousMonthCount = monthlyProgress[monthlyProgress.length - 2].count;
+
+        if (previousMonthCount > 0) {
+            monthlyComparisonPercentage = ((currentMonthCount - previousMonthCount) / previousMonthCount) * 100;
+        } else if (currentMonthCount > 0) { // Read something this month, nothing last month
+            monthlyComparisonPercentage = 100; 
+        }
+    } else if (monthlyProgress.length === 1 && monthlyProgress[0].count > 0) {
+        monthlyComparisonPercentage = 100; // Only one month, and books were read
+    }
+
 
     return {
       totalBooks: finishedBooks.length,
-      totalPages,
+      totalPages: totalPagesFinished + totalPagesReading, // Only finished + current reading pages
       readingCount: readingBooks.length,
       toReadCount: toReadBooks.length,
-      avgPages: finishedBooks.length > 0 ? Math.round(totalPages / finishedBooks.length) : 0,
+      avgPages: finishedBooks.length > 0 ? Math.round(totalPagesFinished / finishedBooks.length) : 0,
       streakDays: readingBooks.length > 0 ? 5 : 0, // Mock streak, could be calculated with finishDate
       genreDistribution,
       monthlyProgress,
-      topAuthors
+      topAuthors,
+      // New fun facts
+      totalLengthMeters,
+      continuousReadingDays,
+      favoriteGenreName,
+      favoriteGenrePercentage,
+      monthlyComparisonPercentage,
     };
   };
 
@@ -132,6 +175,27 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
                 <Clock size={24} />
             </div>
         </div>
+      </div>
+
+      {/* Datos Curiosos */}
+      <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
+        <h3 className="text-lg font-bold text-stone-800 mb-6 flex items-center gap-2">
+          <Lightbulb size={20} className="text-earth-600" /> Datos Curiosos
+        </h3>
+        <ul className="space-y-3 text-stone-700">
+          <li>
+            <span className="font-medium">Si pusieras todos tus libros en fila:</span> medirían <span className="font-bold text-earth-700">{stats.totalLengthMeters.toFixed(2)}</span> metros.
+          </li>
+          <li>
+            <span className="font-medium">Has leído el equivalente a:</span> <span className="font-bold text-earth-700">{stats.continuousReadingDays.toFixed(1)}</span> días de lectura continua.
+          </li>
+          <li>
+            <span className="font-medium">Tu categoría favorita ({stats.favoriteGenreName}):</span> representa un <span className="font-bold text-earth-700">{stats.favoriteGenrePercentage.toFixed(1)}%</span> de tu biblioteca.
+          </li>
+          <li>
+            <span className="font-medium">Comparado con el mes anterior:</span> este mes leíste un <span className="font-bold text-earth-700">{stats.monthlyComparisonPercentage >= 0 ? '+' : ''}{stats.monthlyComparisonPercentage.toFixed(1)}%</span>.
+          </li>
+        </ul>
       </div>
 
       {/* Charts */}
