@@ -18,6 +18,7 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
     status: BookStatus.POR_LEER,
     currentPage: 0,
     genre: GENRES[0],
+    year: initialData?.year || new Date().getFullYear(), // Set current year for new books
     ...initialData
   });
 
