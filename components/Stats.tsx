@@ -1,7 +1,7 @@
 import React from 'react';
 import { Book, BookStatus, StatData } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid } from 'recharts';
-import { Trophy, BookOpen, Layers, Clock, Users, Lightbulb } from 'lucide-react'; // Added Lightbulb icon
+import { Trophy, BookOpen, Layers, Clock, Users, Lightbulb, CalendarDays, BookCheck, TrendingUp } from 'lucide-react'; // Added new icons
 
 interface StatsProps {
   books: Book[];
@@ -16,7 +16,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
 
     const totalPagesFinished = finishedBooks.reduce((acc, curr) => acc + curr.totalPages, 0);
     const totalPagesReading = readingBooks.reduce((acc, curr) => acc + (curr.currentPage || 0), 0);
-    const totalPagesOverall = books.reduce((acc, curr) => acc + curr.totalPages, 0); // Total pages of all books
+    const totalPagesOverall = books.reduce((acc, curr) => acc + curr.totalPages, 0); // Total pages of all books (including unfinished)
 
     // Genre Distribution
     const genreMap = new Map<string, number>();
@@ -111,6 +111,53 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
         monthlyComparisonPercentage = 100; // Only one month, and books were read
     }
 
+    // --- General Statistics Calculations ---
+    const currentYear = now.getFullYear();
+    const totalBooksFinishedCurrentYear = finishedBooks.filter(b => 
+      b.finishDate && new Date(b.finishDate).getFullYear() === currentYear
+    ).length;
+
+    let avgBooksPerMonth = 0;
+    let avgPagesPerMonth = 0;
+    let avgPagesPerDay = 0;
+    let daysSinceFirstBook = 0;
+
+    if (books.length > 0) {
+      const firstBookDate = new Date(books.reduce((min, b) => new Date(b.createdAt) < new Date(min) ? b.createdAt : min, books[0].createdAt));
+      const diffTime = Math.abs(now.getTime() - firstBookDate.getTime());
+      daysSinceFirstBook = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      const monthsSinceFirstBook = daysSinceFirstBook / 30.44; // Average days in a month
+
+      if (monthsSinceFirstBook > 0) {
+        avgBooksPerMonth = finishedBooks.length / monthsSinceFirstBook;
+        avgPagesPerMonth = totalPagesFinished / monthsSinceFirstBook;
+      }
+      if (daysSinceFirstBook > 0) {
+        avgPagesPerDay = totalPagesFinished / daysSinceFirstBook;
+      }
+    }
+
+    let daysSinceLastFinishedBook: number | null = null;
+    if (finishedBooks.length > 0) {
+      const latestFinishDate = finishedBooks.reduce((maxDate, b) => 
+        (b.finishDate && new Date(b.finishDate) > new Date(maxDate)) ? b.finishDate : maxDate, 
+        finishedBooks[0].finishDate || new Date(0).toISOString()
+      );
+      if (latestFinishDate) {
+        const diffTime = Math.abs(now.getTime() - new Date(latestFinishDate).getTime());
+        daysSinceLastFinishedBook = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      }
+    }
+
+    // Longest Reading Streak (Placeholder for now, as it requires more complex logic or daily data)
+    const longestReadingStreak = 0; // Placeholder
+
+    let mostProductiveMonth = 'N/A';
+    if (monthlyProgress.length > 0) {
+      const mostProductive = monthlyProgress.reduce((max, current) => (current.count > max.count ? current : max), monthlyProgress[0]);
+      mostProductiveMonth = mostProductive.name;
+    }
+
 
     return {
       totalBooks: finishedBooks.length,
@@ -128,6 +175,14 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       favoriteGenreName,
       favoriteGenrePercentage,
       monthlyComparisonPercentage,
+      // New general statistics
+      totalBooksFinishedCurrentYear,
+      avgBooksPerMonth,
+      daysSinceLastFinishedBook,
+      longestReadingStreak,
+      mostProductiveMonth,
+      avgPagesPerMonth,
+      avgPagesPerDay,
     };
   };
 
@@ -174,6 +229,64 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
             <div className="p-3 bg-orange-100 text-orange-600 rounded-full">
                 <Clock size={24} />
             </div>
+        </div>
+      </div>
+
+      {/* General Statistics */}
+      <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
+        <h3 className="text-lg font-bold text-stone-800 mb-6 flex items-center gap-2">
+          <BookCheck size={20} className="text-earth-600" /> Estadísticas Generales
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-stone-700">
+          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+            <Trophy size={20} className="text-amber-500" />
+            <div>
+              <p className="text-sm font-medium">Libros Leídos (Año Actual)</p>
+              <p className="font-bold text-lg">{stats.totalBooksFinishedCurrentYear}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+            <CalendarDays size={20} className="text-blue-500" />
+            <div>
+              <p className="text-sm font-medium">Promedio Libros/Mes</p>
+              <p className="font-bold text-lg">{stats.avgBooksPerMonth.toFixed(1)}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+            <Clock size={20} className="text-purple-500" />
+            <div>
+              <p className="text-sm font-medium">Días desde último libro</p>
+              <p className="font-bold text-lg">{stats.daysSinceLastFinishedBook !== null ? stats.daysSinceLastFinishedBook : 'N/A'}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+            <TrendingUp size={20} className="text-emerald-500" />
+            <div>
+              <p className="text-sm font-medium">Racha más larga de lectura</p>
+              <p className="font-bold text-lg">{stats.longestReadingStreak} días</p> {/* Placeholder */}
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+            <CalendarDays size={20} className="text-red-500" />
+            <div>
+              <p className="text-sm font-medium">Mes más productivo</p>
+              <p className="font-bold text-lg">{stats.mostProductiveMonth}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+            <Layers size={20} className="text-orange-500" />
+            <div>
+              <p className="text-sm font-medium">Páginas/Mes</p>
+              <p className="font-bold text-lg">{stats.avgPagesPerMonth.toFixed(0)}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+            <Layers size={20} className="text-cyan-500" />
+            <div>
+              <p className="text-sm font-medium">Páginas/Día</p>
+              <p className="font-bold text-lg">{stats.avgPagesPerDay.toFixed(0)}</p>
+            </div>
+          </div>
         </div>
       </div>
 

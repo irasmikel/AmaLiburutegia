@@ -44,6 +44,14 @@ export interface StatData {
   favoriteGenreName: string;
   favoriteGenrePercentage: number;
   monthlyComparisonPercentage: number;
+  // New fields for general statistics
+  totalBooksFinishedCurrentYear: number;
+  avgBooksPerMonth: number;
+  daysSinceLastFinishedBook: number | null;
+  longestReadingStreak: number;
+  mostProductiveMonth: string;
+  avgPagesPerMonth: number;
+  avgPagesPerDay: number;
 }
 
 export interface SharedFile {
