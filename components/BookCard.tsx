@@ -1,7 +1,7 @@
 import React from 'react';
 import { Book, BookStatus } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../constants';
-import { Edit2, Trash2, BookOpen, CheckCircle, Clock, Book as BookIconLucide, Star } from 'lucide-react'; // Import Star icon
+import { Edit2, Trash2, BookOpen, CheckCircle, Clock, Star } from 'lucide-react'; 
 
 interface BookCardProps {
   book: Book;
@@ -20,48 +20,27 @@ const BookCard: React.FC<BookCardProps> = ({ book, onEdit, onDelete, onUpdatePro
   }[book.status];
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-stone-100 hover:shadow-md transition-all duration-300 group flex flex-col h-full overflow-hidden">
-      {/* Card Header / Cover */}
-      <div className="h-40 relative overflow-hidden rounded-t-xl"> {/* Increased height for better cover display */}
-        {book.coverUrl ? (
-          <img 
-            src={book.coverUrl} 
-            alt={`Portada de ${book.title}`} 
-            className="w-full h-full object-cover" 
-            onError={(e) => { 
-              // Fallback to generic icon if image fails to load
-              e.currentTarget.onerror = null; // Prevent infinite loop
-              e.currentTarget.src = ''; // Clear broken image src
-              e.currentTarget.style.display = 'none'; // Hide broken image
-              // The parent div will now show its default background if img is hidden
-            }}
-          />
-        ) : (
-          <div className="w-full h-full bg-earth-200 flex items-center justify-center">
-            <BookIconLucide size={64} className="text-earth-500 opacity-70" /> {/* Larger generic book icon */}
-          </div>
-        )}
-        
-        {/* Edit/Delete buttons */}
-        <div className="absolute top-2 right-2 p-1.5 bg-white/80 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 shadow-md z-10">
-            <button 
-                onClick={(e) => { e.stopPropagation(); onEdit(book); }}
-                className="p-1.5 rounded-md text-stone-600 hover:bg-stone-100 hover:text-blue-600 transition-colors"
-                title="Editar libro"
-            >
-                <Edit2 size={16} />
-            </button>
-            <button 
-                 onClick={(e) => { e.stopPropagation(); onDelete(book.id); }}
-                className="p-1.5 rounded-md text-stone-600 hover:bg-stone-100 hover:text-red-600 transition-colors"
-                title="Eliminar libro"
-            >
-                <Trash2 size={16} />
-            </button>
-        </div>
+    <div className="bg-white rounded-xl shadow-sm border border-stone-100 hover:shadow-md transition-all duration-300 group flex flex-col h-full relative p-4">
+      
+      {/* Edit/Delete buttons - moved to top right of the card */}
+      <div className="absolute top-4 right-4 p-1.5 bg-white/80 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 shadow-md z-10">
+          <button 
+              onClick={(e) => { e.stopPropagation(); onEdit(book); }}
+              className="p-1.5 rounded-md text-stone-600 hover:bg-stone-100 hover:text-blue-600 transition-colors"
+              title="Editar libro"
+          >
+              <Edit2 size={16} />
+          </button>
+          <button 
+               onClick={(e) => { e.stopPropagation(); onDelete(book.id); }}
+              className="p-1.5 rounded-md text-stone-600 hover:bg-stone-100 hover:text-red-600 transition-colors"
+              title="Eliminar libro"
+          >
+              <Trash2 size={16} />
+          </button>
       </div>
 
-      <div className="p-4 flex-1 flex flex-col"> {/* Adjusted padding for consistent spacing */}
+      <div className="flex-1 flex flex-col">
         <div className="mb-2">
             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${STATUS_COLORS[book.status]}`}>
                 <StatusIcon size={12} />
