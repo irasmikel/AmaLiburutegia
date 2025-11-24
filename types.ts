@@ -46,9 +46,7 @@ export interface StatData {
   monthlyComparisonPercentage: number;
   // New fields for general statistics
   totalBooksFinishedCurrentYear: number;
-  avgBooksPerMonth: number;
   daysSinceLastFinishedBook: number | null;
-  longestReadingStreak: number;
   mostProductiveMonth: string;
   avgPagesPerMonth: number;
   avgPagesPerDay: number;

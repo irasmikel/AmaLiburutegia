@@ -117,7 +117,6 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       b.finishDate && new Date(b.finishDate).getFullYear() === currentYear
     ).length;
 
-    let avgBooksPerMonth = 0;
     let avgPagesPerMonth = 0;
     let avgPagesPerDay = 0;
     let daysSinceFirstBook = 0;
@@ -129,7 +128,6 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       const monthsSinceFirstBook = daysSinceFirstBook / 30.44; // Average days in a month
 
       if (monthsSinceFirstBook > 0) {
-        avgBooksPerMonth = finishedBooks.length / monthsSinceFirstBook;
         avgPagesPerMonth = totalPagesFinished / monthsSinceFirstBook;
       }
       if (daysSinceFirstBook > 0) {
@@ -148,9 +146,6 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
         daysSinceLastFinishedBook = Math.floor(diffTime / (1000 * 60 * 60 * 24));
       }
     }
-
-    // Longest Reading Streak (Placeholder for now, as it requires more complex logic or daily data)
-    const longestReadingStreak = 0; // Placeholder
 
     let mostProductiveMonth = 'N/A';
     if (monthlyProgress.length > 0) {
@@ -177,9 +172,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       monthlyComparisonPercentage,
       // New general statistics
       totalBooksFinishedCurrentYear,
-      avgBooksPerMonth,
       daysSinceLastFinishedBook,
-      longestReadingStreak,
       mostProductiveMonth,
       avgPagesPerMonth,
       avgPagesPerDay,
@@ -246,24 +239,10 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
-            <CalendarDays size={20} className="text-blue-500" />
-            <div>
-              <p className="text-sm font-medium">Promedio Libros/Mes</p>
-              <p className="font-bold text-lg">{stats.avgBooksPerMonth.toFixed(1)}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
             <Clock size={20} className="text-purple-500" />
             <div>
               <p className="text-sm font-medium">Días desde último libro</p>
               <p className="font-bold text-lg">{stats.daysSinceLastFinishedBook !== null ? stats.daysSinceLastFinishedBook : 'N/A'}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
-            <TrendingUp size={20} className="text-emerald-500" />
-            <div>
-              <p className="text-sm font-medium">Racha más larga de lectura</p>
-              <p className="font-bold text-lg">{stats.longestReadingStreak} días</p> {/* Placeholder */}
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
