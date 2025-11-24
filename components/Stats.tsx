@@ -126,6 +126,9 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
     let avgPagesPerDay = 0;
     let daysSinceFirstBook = 0;
 
+    // Use totalPages (finished + reading progress) for these averages
+    const totalPagesReadIncludingInProgress = totalPagesFinished + totalPagesReading;
+
     if (books.length > 0) {
       const firstBookDate = new Date(books.reduce((min, b) => new Date(b.createdAt) < new Date(min) ? b.createdAt : min, books[0].createdAt));
       const diffTime = Math.abs(now.getTime() - firstBookDate.getTime());
@@ -133,10 +136,10 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       const monthsSinceFirstBook = daysSinceFirstBook / 30.44; // Average days in a month
 
       if (monthsSinceFirstBook > 0) {
-        avgPagesPerMonth = totalPagesFinished / monthsSinceFirstBook;
+        avgPagesPerMonth = totalPagesReadIncludingInProgress / monthsSinceFirstBook;
       }
       if (daysSinceFirstBook > 0) {
-        avgPagesPerDay = totalPagesFinished / daysSinceFirstBook;
+        avgPagesPerDay = totalPagesReadIncludingInProgress / daysSinceFirstBook;
       }
     }
 
