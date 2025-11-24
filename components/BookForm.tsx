@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Book, BookStatus, UserProfile } from '../types';
-import { GENRES } from '../constants';
-import { X, Sparkles, Loader2, Star } from 'lucide-react'; // Add Star icon
+import { Book, BookStatus, UserProfile, Genre } from '../types';
+import { X, Sparkles, Loader2, Star, Settings } from 'lucide-react'; // Add Settings icon
 import { suggestBookDetails } from '../services/geminiService';
-import { showError } from '../src/utils/toast.tsx'; // Update import path
+import { showError, showSuccess } from '../src/utils/toast.tsx';
+import * as DataService from '../services/dataService'; // Import DataService
+import GenreManager from '../src/components/GenreManager'; // Import GenreManager
 
 interface BookFormProps {
   userId: UserProfile;
@@ -13,17 +14,43 @@ interface BookFormProps {
 }
 
 const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSave }) => {
+  const [genres, setGenres] = useState<Genre[]>([]);
+  const [isGenreManagerOpen, setIsGenreManagerOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Book>>({
     userId: userId,
     status: BookStatus.POR_LEER,
     currentPage: 0,
-    genre: GENRES[0],
-    year: initialData?.year || new Date().getFullYear(), // Set current year for new books
+    genre: '', // Default to empty or first fetched genre
+    year: initialData?.year || new Date().getFullYear(),
     ...initialData
   });
 
   const [aiLoading, setAiLoading] = useState(false);
-  const isApiKeyConfigured = !!process.env.API_KEY; // Check if API key is present
+  const isApiKeyConfigured = !!process.env.API_KEY;
+
+  useEffect(() => {
+    fetchGenres();
+  }, []);
+
+  useEffect(() => {
+    // Set initial genre if not already set and genres are loaded
+    if (!formData.genre && genres.length > 0) {
+      setFormData(prev => ({ ...prev, genre: genres[0].name }));
+    }
+  }, [genres, formData.genre]);
+
+  const fetchGenres = async () => {
+    try {
+      const fetchedGenres = await DataService.getGenres();
+      setGenres(fetchedGenres);
+      // If initialData has a genre not in the fetched list, add it to the list temporarily
+      if (initialData?.genre && !fetchedGenres.some(g => g.name === initialData.genre)) {
+        setGenres(prev => [...prev, { id: 'temp', name: initialData.genre, created_at: new Date().toISOString() }]);
+      }
+    } catch (err: any) {
+      showError(`Error al cargar géneros: ${err.message}`);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -48,11 +75,14 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
     try {
       const suggestion = await suggestBookDetails(formData.title, formData.author); 
       if (suggestion) {
+        // Ensure suggested genre exists or default to first available
+        const suggestedGenre = genres.find(g => g.name === suggestion.genre)?.name || (genres.length > 0 ? genres[0].name : '');
+
         setFormData(prev => ({
           ...prev,
-          title: suggestion.title || prev.title, // Also update title if AI provides a better one
-          author: suggestion.author || prev.author, // Set author from AI suggestion
-          genre: suggestion.genre || prev.genre,
+          title: suggestion.title || prev.title,
+          author: suggestion.author || prev.author,
+          genre: suggestedGenre || prev.genre,
           totalPages: suggestion.totalPages || prev.totalPages,
           year: suggestion.year || prev.year,
           notes: prev.notes ? prev.notes : suggestion.summary
@@ -69,7 +99,10 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.author || !formData.totalPages) return;
+    if (!formData.title || !formData.author || !formData.totalPages) {
+      showError('Por favor, rellena todos los campos obligatorios (Título, Autor, Páginas).');
+      return;
+    }
     
     let finalStatus = formData.status;
     if (formData.currentPage && formData.currentPage > 0 && formData.currentPage < (formData.totalPages || 0)) {
@@ -174,16 +207,27 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Género</label>
-                <select
-                  name="genre"
-                  value={formData.genre}
-                  onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-earth-400 outline-none bg-white"
-                >
-                  {GENRES.map(g => (
-                    <option key={g} value={g}>{g}</option>
-                  ))}
-                </select>
+                <div className="flex gap-2">
+                  <select
+                    name="genre"
+                    value={formData.genre}
+                    onChange={handleChange}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-earth-400 outline-none bg-white"
+                  >
+                    {genres.length === 0 && <option value="">Cargando géneros...</option>}
+                    {genres.map(g => (
+                      <option key={g.id} value={g.name}>{g.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setIsGenreManagerOpen(true)}
+                    className="p-2 rounded-lg text-earth-600 hover:bg-earth-100 transition-colors"
+                    title="Gestionar géneros"
+                  >
+                    <Settings size={20} />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -294,6 +338,13 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
           </div>
         </form>
       </div>
+
+      {isGenreManagerOpen && (
+        <GenreManager
+          onClose={() => setIsGenreManagerOpen(false)}
+          onGenreUpdated={fetchGenres} // Refresh genres when manager closes or updates
+        />
+      )}
     </div>
   );
 };

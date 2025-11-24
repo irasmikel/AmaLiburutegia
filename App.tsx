@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { UserProfile, Book, BookStatus } from './types';
-import { GENRES } from './constants';
 import * as DataService from './services/dataService';
 import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
@@ -77,6 +76,42 @@ drop policy if exists "Allow public delete" on storage.objects;
 create policy "Allow public delete"
 on storage.objects for delete
 using (bucket_id = 'shared-files');
+
+-- 6. Crea la tabla de géneros (si no existe)
+create table if not exists public.genres (
+  id uuid default gen_random_uuid() primary key,
+  name text not null unique,
+  created_at timestamptz default now()
+);
+
+-- Habilita la seguridad a nivel de fila (RLS) para géneros
+alter table public.genres enable row level security;
+
+-- Política para acceso público a géneros
+drop policy if exists "Public genres access" on public.genres;
+create policy "Public genres access"
+on public.genres
+for all
+using (true)
+with check (true);
+
+-- Inserta algunos géneros iniciales si la tabla está vacía
+insert into public.genres (name)
+values
+('Ficción'),
+('No Ficción'),
+('Romance'),
+('Thriller'),
+('Historia'),
+('Biografía'),
+('Fantasía'),
+('Ciencia Ficción'),
+('Clásicos'),
+('Autoayuda'),
+('Misterio'),
+('Poesía'),
+('Otro')
+on conflict (name) do nothing;
 `;
 
 function App() {
@@ -96,6 +131,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<BookStatus | 'ALL'>('ALL');
   const [filterGenre, setFilterGenre] = useState<string>('ALL');
+  const [availableGenres, setAvailableGenres] = useState<string[]>([]); // To populate genre filter
 
   // Sorting
   const [sortField, setSortField] = useState<keyof Book>('createdAt');
@@ -123,8 +159,18 @@ function App() {
           }
           setLoading(false);
         });
+        fetchAvailableGenres();
     }
   }, [user]);
+
+  const fetchAvailableGenres = async () => {
+    try {
+      const genres = await DataService.getGenres();
+      setAvailableGenres(genres.map(g => g.name));
+    } catch (err: any) {
+      showError(`Error al cargar géneros para el filtro: ${err.message}`);
+    }
+  };
 
   // Actions
   const handleSaveBook = async (bookData: Book | Omit<Book, 'id' | 'createdAt'>) => {
@@ -141,6 +187,7 @@ function App() {
       setBooks(updated);
       setIsFormOpen(false);
       setEditingBook(undefined);
+      fetchAvailableGenres(); // Refresh genres in case a new one was added via AI or form
     } catch (err: any) {
       const msg = err.message || JSON.stringify(err);
       showError(`No se pudo guardar el libro: ${msg}`);
@@ -510,7 +557,7 @@ function App() {
                                 className="px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg text-sm text-stone-700 focus:outline-none"
                             >
                                 <option value="ALL">Todos los géneros</option>
-                                {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                                {availableGenres.map(g => <option key={g} value={g}>{g}</option>)}
                             </select>
                             <select
                                 value={sortField}

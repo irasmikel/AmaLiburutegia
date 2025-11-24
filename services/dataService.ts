@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Book, UserProfile, BookStatus, SharedFile } from '../types';
+import { Book, UserProfile, BookStatus, SharedFile, Genre } from '../types';
 
 // Supabase Configuration
 const SUPABASE_URL = 'https://iaxvnfrplqmxgohsaeci.supabase.co';
@@ -184,6 +184,46 @@ export const deleteSharedFile = async (filePath: string): Promise<void> => {
 
   if (error) {
     console.error('Supabase Delete File Error:', error);
+    throw new Error(getErrorMessage(error));
+  }
+};
+
+// --- Genre Management Functions ---
+export const getGenres = async (): Promise<Genre[]> => {
+  const { data, error } = await supabase
+    .from('genres')
+    .select('*')
+    .order('name', { ascending: true });
+
+  if (error) {
+    console.error('Supabase Fetch Genres Error:', error);
+    throw new Error(getErrorMessage(error));
+  }
+  return data || [];
+};
+
+export const addGenre = async (name: string): Promise<Genre> => {
+  const { data, error } = await supabase
+    .from('genres')
+    .insert({ name })
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Supabase Add Genre Error:', error);
+    throw new Error(getErrorMessage(error));
+  }
+  return data;
+};
+
+export const deleteGenre = async (id: string): Promise<void> => {
+  const { error } = await supabase
+    .from('genres')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error('Supabase Delete Genre Error:', error);
     throw new Error(getErrorMessage(error));
   }
 };
