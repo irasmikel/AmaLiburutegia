@@ -1,7 +1,19 @@
 import React from 'react';
 import { Book, BookStatus } from '../types';
-import { STATUS_COLORS, STATUS_LABELS } from '../constants';
 import { Edit2, Trash2, BookOpen, CheckCircle, Clock, Star } from 'lucide-react'; 
+
+// Define STATUS_COLORS and STATUS_LABELS directly in BookCard.tsx
+const STATUS_COLORS: Record<BookStatus, string> = {
+  [BookStatus.POR_LEER]: 'bg-orange-50 border-orange-200 text-orange-700',
+  [BookStatus.LEYENDO]: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+  [BookStatus.TERMINADO]: 'bg-blue-50 border-blue-200 text-blue-700',
+};
+
+const STATUS_LABELS: Record<BookStatus, string> = {
+  [BookStatus.POR_LEER]: 'Por Leer',
+  [BookStatus.LEYENDO]: 'Leyendo',
+  [BookStatus.TERMINADO]: 'Terminado',
+};
 
 interface BookCardProps {
   book: Book;
