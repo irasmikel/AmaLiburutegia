@@ -50,6 +50,21 @@ export interface StatData {
   mostProductiveMonth: string;
   avgPagesPerMonth: number;
   avgPagesPerDay: number;
+  avgDaysPerBookFinished: number | null; // "Lees un libro cada X días de media"
+  uniqueAuthorsCount: number; // "Has viajado por X países a través de tus autores" (simplified)
+  longestBookPages: number | null;
+  shortestBookPages: number | null;
+  pageDifferenceLongShort: number | null;
+  avgPagesPerBookFinished: number;
+  bestMonthName: string;
+  bestMonthBooks: number;
+  worstMonthName: string;
+  worstMonthBooks: number;
+  longestTimeWithoutFinishingBookDays: number | null;
+  recordBooksInMonth: number; // "Tu récord: X libros en un mes"
+  paceImprovementPercentage: number | null; // "Has mejorado tu ritmo un X% respecto al año pasado"
+  totalBooksFinishedPreviousYear: number; // Helper for pace improvement
+  randomFact: string; // For "Sabías que..."
 }
 
 export interface SharedFile {

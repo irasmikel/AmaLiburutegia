@@ -1,14 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Book, BookStatus, StatData } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid } from 'recharts';
-import { Trophy, BookOpen, Layers, Clock, Users, Lightbulb, CalendarDays, BookCheck, TrendingUp } from 'lucide-react'; // Added new icons
+import { Trophy, BookOpen, Layers, Clock, Users, Lightbulb, CalendarDays, BookCheck, TrendingUp, Globe, BookMarked, Award } from 'lucide-react'; // Added new icons
 
 interface StatsProps {
   books: Book[];
 }
 
 const Stats: React.FC<StatsProps> = ({ books }) => {
-  // Calculate Stats
+  const [randomFact, setRandomFact] = useState('');
+
   const calculateStats = (): StatData => {
     const finishedBooks = books.filter(b => b.status === BookStatus.TERMINADO);
     const readingBooks = books.filter(b => b.status === BookStatus.LEYENDO);
@@ -117,6 +118,10 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       b.finishDate && new Date(b.finishDate).getFullYear() === currentYear
     ).length;
 
+    const totalBooksFinishedPreviousYear = finishedBooks.filter(b => 
+      b.finishDate && new Date(b.finishDate).getFullYear() === currentYear - 1
+    ).length;
+
     let avgPagesPerMonth = 0;
     let avgPagesPerDay = 0;
     let daysSinceFirstBook = 0;
@@ -148,11 +153,82 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
     }
 
     let mostProductiveMonth = 'N/A';
+    let bestMonthName = 'N/A';
+    let bestMonthBooks = 0;
+    let worstMonthName = 'N/A';
+    let worstMonthBooks = Infinity;
+
     if (monthlyProgress.length > 0) {
       const mostProductive = monthlyProgress.reduce((max, current) => (current.count > max.count ? current : max), monthlyProgress[0]);
-      mostProductiveMonth = mostProductive.name;
+      bestMonthName = mostProductive.name;
+      bestMonthBooks = mostProductive.count;
+      mostProductiveMonth = mostProductive.name; // For backward compatibility with existing field
+
+      const leastProductive = monthlyProgress.reduce((min, current) => (current.count < min.count ? current : min), monthlyProgress[0]);
+      worstMonthName = leastProductive.name;
+      worstMonthBooks = leastProductive.count;
     }
 
+    // "Lees un libro cada X días de media"
+    const avgDaysPerBookFinished = finishedBooks.length > 0 && daysSinceFirstBook > 0 
+      ? daysSinceFirstBook / finishedBooks.length 
+      : null;
+
+    // "Has viajado por X países a través de tus autores" (simplified to unique authors)
+    const uniqueAuthors = new Set(books.map(b => b.author).filter(Boolean));
+    const uniqueAuthorsCount = uniqueAuthors.size;
+
+    // "El libro más largo que leíste tenía X páginas, el más corto Y páginas"
+    const longestBookPages = finishedBooks.length > 0 
+      ? Math.max(...finishedBooks.map(b => b.totalPages)) 
+      : null;
+    const shortestBookPages = finishedBooks.length > 0 
+      ? Math.min(...finishedBooks.map(b => b.totalPages)) 
+      : null;
+    const pageDifferenceLongShort = (longestBookPages !== null && shortestBookPages !== null)
+      ? longestBookPages - shortestBookPages
+      : null;
+
+    // "Páginas promedio por libro: X páginas"
+    const avgPagesPerBookFinished = finishedBooks.length > 0 
+      ? totalPagesFinished / finishedBooks.length 
+      : 0;
+
+    // "Racha más larga sin terminar un libro: X días"
+    let longestTimeWithoutFinishingBookDays: number | null = null;
+    if (finishedBooks.length > 1) {
+        const sortedFinishDates = finishedBooks
+            .filter(b => b.finishDate)
+            .map(b => new Date(b.finishDate!))
+            .sort((a, b) => a.getTime() - b.getTime());
+
+        let maxGap = 0;
+        for (let i = 1; i < sortedFinishDates.length; i++) {
+            const diffTime = Math.abs(sortedFinishDates[i].getTime() - sortedFinishDates[i-1].getTime());
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            if (diffDays > maxGap) {
+                maxGap = diffDays;
+            }
+        }
+        longestTimeWithoutFinishingBookDays = maxGap;
+    } else if (finishedBooks.length === 1 && daysSinceFirstBook > 0) {
+        // If only one book finished, the "gap" is from the start of tracking to that book
+        longestTimeWithoutFinishingBookDays = daysSinceFirstBook;
+    }
+
+
+    // "Tu récord: X libros en un mes" (simplified from week)
+    const recordBooksInMonth = monthlyProgress.length > 0 
+      ? Math.max(...monthlyProgress.map(m => m.count)) 
+      : 0;
+
+    // "Has mejorado tu ritmo un X% respecto al año pasado"
+    let paceImprovementPercentage: number | null = null;
+    if (totalBooksFinishedPreviousYear > 0) {
+        paceImprovementPercentage = ((totalBooksFinishedCurrentYear - totalBooksFinishedPreviousYear) / totalBooksFinishedPreviousYear) * 100;
+    } else if (totalBooksFinishedCurrentYear > 0) {
+        paceImprovementPercentage = 100; // Read books this year, none last year
+    }
 
     return {
       totalBooks: finishedBooks.length,
@@ -176,11 +252,48 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       mostProductiveMonth,
       avgPagesPerMonth,
       avgPagesPerDay,
+      avgDaysPerBookFinished,
+      uniqueAuthorsCount,
+      longestBookPages,
+      shortestBookPages,
+      pageDifferenceLongShort,
+      avgPagesPerBookFinished,
+      bestMonthName,
+      bestMonthBooks,
+      worstMonthName,
+      worstMonthBooks,
+      longestTimeWithoutFinishingBookDays,
+      recordBooksInMonth,
+      paceImprovementPercentage,
+      totalBooksFinishedPreviousYear,
+      randomFact: '', // Will be set by useEffect
     };
   };
 
-  const stats = calculateStats();
+  const stats = useMemo(() => calculateStats(), [books]);
   const COLORS = ['#b5763e', '#c28e50', '#d1aa78', '#e0c7a8', '#ede0d4']; // Earthy tones
+
+  // "Sabías que..." facts
+  const funFactsList = useMemo(() => [
+    `Sabías que has leído un total de ${stats.totalBooks} libros. ¡Impresionante!`,
+    `Tu género favorito es "${stats.favoriteGenreName}", representando el ${stats.favoriteGenrePercentage.toFixed(1)}% de tu biblioteca.`,
+    stats.longestBookPages ? `El libro más largo que has leído tenía ${stats.longestBookPages} páginas.` : null,
+    stats.shortestBookPages ? `El libro más corto que has leído tenía ${stats.shortestBookPages} páginas.` : null,
+    stats.avgPagesPerBookFinished ? `En promedio, cada libro que terminas tiene ${stats.avgPagesPerBookFinished.toFixed(0)} páginas.` : null,
+    stats.bestMonthName !== 'N/A' ? `Tu mes más productivo fue ${stats.bestMonthName}, donde terminaste ${stats.bestMonthBooks} libros.` : null,
+    stats.recordBooksInMonth > 0 ? `Tu récord de libros terminados en un mes es de ${stats.recordBooksInMonth}.` : null,
+    stats.uniqueAuthorsCount > 0 ? `Has descubierto ${stats.uniqueAuthorsCount} autores únicos en tu viaje literario.` : null,
+    stats.avgDaysPerBookFinished ? `Lees un libro cada ${stats.avgDaysPerBookFinished.toFixed(1)} días de media.` : null,
+    stats.longestTimeWithoutFinishingBookDays !== null ? `Tu racha más larga sin terminar un libro fue de ${stats.longestTimeWithoutFinishingBookDays} días.` : null,
+  ].filter(Boolean) as string[], [stats]);
+
+  useEffect(() => {
+    if (funFactsList.length > 0) {
+      const randomIndex = Math.floor(Math.random() * funFactsList.length);
+      setRandomFact(funFactsList[randomIndex]);
+    }
+  }, [funFactsList]);
+
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
@@ -225,6 +338,14 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
         </div>
       </div>
 
+      {/* Sabías que... */}
+      {randomFact && (
+        <div className="bg-gradient-to-r from-earth-600 to-earth-500 rounded-2xl p-6 text-white shadow-lg flex items-center gap-4">
+          <Lightbulb size={28} className="flex-shrink-0" />
+          <p className="text-lg font-medium">{randomFact}</p>
+        </div>
+      )}
+
       {/* General Statistics */}
       <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
         <h3 className="text-lg font-bold text-stone-800 mb-6 flex items-center gap-2">
@@ -266,13 +387,34 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
               <p className="font-bold text-lg">{stats.avgPagesPerDay.toFixed(0)}</p>
             </div>
           </div>
+          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+            <BookMarked size={20} className="text-green-500" />
+            <div>
+              <p className="text-sm font-medium">Páginas promedio por libro</p>
+              <p className="font-bold text-lg">{stats.avgPagesPerBookFinished.toFixed(0)}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+            <Clock size={20} className="text-indigo-500" />
+            <div>
+              <p className="text-sm font-medium">Libro cada</p>
+              <p className="font-bold text-lg">{stats.avgDaysPerBookFinished !== null ? `${stats.avgDaysPerBookFinished.toFixed(1)} días` : 'N/A'}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+            <Globe size={20} className="text-blue-500" />
+            <div>
+              <p className="text-sm font-medium">Autores únicos</p>
+              <p className="font-bold text-lg">{stats.uniqueAuthorsCount}</p>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Datos Curiosos */}
       <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
         <h3 className="text-lg font-bold text-stone-800 mb-6 flex items-center gap-2">
-          <Lightbulb size={20} className="text-earth-600" /> Datos Curiosos
+          <Lightbulb size={20} className="text-earth-600" /> Más Datos Curiosos
         </h3>
         <ul className="space-y-3 text-stone-700">
           <li>
@@ -287,7 +429,65 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
           <li>
             <span className="font-medium">Comparado con el mes anterior:</span> este mes leíste un <span className="font-bold text-earth-700">{stats.monthlyComparisonPercentage >= 0 ? '+' : ''}{stats.monthlyComparisonPercentage.toFixed(1)}%</span>.
           </li>
+          {stats.longestBookPages && (
+            <li>
+              <span className="font-medium">El libro más largo que leíste:</span> tenía <span className="font-bold text-earth-700">{stats.longestBookPages}</span> páginas.
+            </li>
+          )}
+          {stats.shortestBookPages && (
+            <li>
+              <span className="font-medium">El libro más corto que leíste:</span> tenía <span className="font-bold text-earth-700">{stats.shortestBookPages}</span> páginas.
+            </li>
+          )}
+          {stats.pageDifferenceLongShort !== null && (
+            <li>
+              <span className="font-medium">Diferencia entre tu libro más largo y corto:</span> <span className="font-bold text-earth-700">{stats.pageDifferenceLongShort}</span> páginas.
+            </li>
+          )}
+          {stats.worstMonthName !== 'N/A' && (
+            <li>
+              <span className="font-medium">Tu peor mes:</span> <span className="font-bold text-earth-700">{stats.worstMonthBooks}</span> libros en <span className="font-bold text-earth-700">{stats.worstMonthName}</span> (¡pero seguiste leyendo!).
+            </li>
+          )}
+          {stats.longestTimeWithoutFinishingBookDays !== null && (
+            <li>
+              <span className="font-medium">Racha más larga sin terminar un libro:</span> <span className="font-bold text-earth-700">{stats.longestTimeWithoutFinishingBookDays}</span> días.
+            </li>
+          )}
+          {stats.recordBooksInMonth > 0 && (
+            <li>
+              <span className="font-medium">Tu récord:</span> <span className="font-bold text-earth-700">{stats.recordBooksInMonth}</span> libros en un mes.
+            </li>
+          )}
+          {stats.paceImprovementPercentage !== null && (
+            <li>
+              <span className="font-medium">Has mejorado tu ritmo:</span> un <span className="font-bold text-earth-700">{stats.paceImprovementPercentage >= 0 ? '+' : ''}{stats.paceImprovementPercentage.toFixed(1)}%</span> respecto al año pasado.
+            </li>
+          )}
         </ul>
+      </div>
+
+      {/* Resumen Anual (Spotify Wrapped style) */}
+      <div className="bg-gradient-to-br from-earth-700 to-earth-900 rounded-2xl p-8 text-white shadow-xl">
+        <h3 className="text-3xl font-bold mb-6 flex items-center gap-3">
+          <Award size={32} className="text-amber-300" /> Tu Resumen Anual {new Date().getFullYear()}
+        </h3>
+        <div className="space-y-4 text-lg">
+          <p>¡Este año ha sido increíble para tu biblioteca!</p>
+          <p>Has terminado un total de <span className="font-bold text-amber-300">{stats.totalBooksFinishedCurrentYear}</span> libros.</p>
+          {stats.bestMonthName !== 'N/A' && (
+            <p>Tu mes estrella fue <span className="font-bold text-amber-300">{stats.bestMonthName}</span>, donde leíste <span className="font-bold text-amber-300">{stats.bestMonthBooks}</span> libros.</p>
+          )}
+          {stats.favoriteGenreName !== 'N/A' && (
+            <p>Tu género más explorado fue <span className="font-bold text-amber-300">{stats.favoriteGenreName}</span>.</p>
+          )}
+          {stats.topAuthors.length > 0 && (
+            <p>Tu autor más leído fue <span className="font-bold text-amber-300">{stats.topAuthors[0].name}</span> con <span className="font-bold text-amber-300">{stats.topAuthors[0].count}</span> libros.</p>
+          )}
+          {stats.paceImprovementPercentage !== null && (
+            <p>¡Y lo mejor es que has <span className="font-bold text-amber-300">{stats.paceImprovementPercentage >= 0 ? 'mejorado' : 'disminuido'}</span> tu ritmo un <span className="font-bold text-amber-300">{Math.abs(stats.paceImprovementPercentage).toFixed(1)}%</span> respecto al año pasado!</p>
+          )}
+        </div>
       </div>
 
       {/* Charts */}
