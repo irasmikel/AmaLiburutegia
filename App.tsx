@@ -5,15 +5,16 @@ import * as DataService from './services/dataService';
 import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
 import Stats from './components/Stats';
-import SharedFiles from './src/components/SharedFiles'; // Import the new component
-import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check, FolderOpen } from 'lucide-react'; // Add FolderOpen icon
-import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx'; // Import toast utilities
+import SharedFiles from './src/components/SharedFiles';
+import CollapsibleSection from './src/components/CollapsibleSection'; // Import the new component
+import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check, FolderOpen } from 'lucide-react';
+import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx';
 
 enum View {
   DASHBOARD = 'DASHBOARD',
   LIBRARY = 'LIBRARY',
   STATS = 'STATS',
-  SHARED_FILES = 'SHARED_FILES' // Add new view
+  SHARED_FILES = 'SHARED_FILES'
 }
 
 // SQL for the user to copy if tables are missing
@@ -242,6 +243,12 @@ function App() {
 
   const readingBooks = books.filter(b => b.status === BookStatus.LEYENDO);
 
+  // Filtered books for collapsible sections
+  const finishedBooks = sortedAndFilteredBooks.filter(b => b.status === BookStatus.TERMINADO);
+  const currentlyReadingBooks = sortedAndFilteredBooks.filter(b => b.status === BookStatus.LEYENDO);
+  const toReadBooks = sortedAndFilteredBooks.filter(b => b.status === BookStatus.POR_LEER);
+
+
   // Renders
   if (!user) {
     return (
@@ -399,7 +406,7 @@ function App() {
                     <span className="text-xs md:text-sm font-medium">Estadísticas</span>
                 </button>
                 <button 
-                    onClick={() => setView(View.SHARED_FILES)} // New navigation button
+                    onClick={() => setView(View.SHARED_FILES)}
                     className={`flex flex-col md:flex-row items-center gap-1 md:gap-2 px-4 py-2 rounded-lg transition-colors ${view === View.SHARED_FILES ? 'text-earth-700 bg-earth-100' : 'text-gray-500 hover:text-gray-900'}`}
                 >
                     <FolderOpen size={20} />
@@ -542,16 +549,60 @@ function App() {
                             </button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                            {sortedAndFilteredBooks.map(book => (
-                                <BookCard 
-                                    key={book.id} 
-                                    book={book} 
-                                    onEdit={(b) => { setEditingBook(b); setIsFormOpen(true); }} 
-                                    onDelete={(id) => handleDeleteBook(id)}
-                                    onUpdateProgress={handleUpdateProgress}
-                                />
-                            ))}
+                        <div className="space-y-6">
+                            <CollapsibleSection title="Libros Terminados" initialOpen={false} count={finishedBooks.length}>
+                                {finishedBooks.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        {finishedBooks.map(book => (
+                                            <BookCard 
+                                                key={book.id} 
+                                                book={book} 
+                                                onEdit={(b) => { setEditingBook(b); setIsFormOpen(true); }} 
+                                                onDelete={(id) => handleDeleteBook(id)}
+                                                onUpdateProgress={handleUpdateProgress}
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-center text-stone-500 py-4">No hay libros terminados que coincidan con los filtros.</p>
+                                )}
+                            </CollapsibleSection>
+
+                            <CollapsibleSection title="Libros Leyendo" initialOpen={false} count={currentlyReadingBooks.length}>
+                                {currentlyReadingBooks.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        {currentlyReadingBooks.map(book => (
+                                            <BookCard 
+                                                key={book.id} 
+                                                book={book} 
+                                                onEdit={(b) => { setEditingBook(b); setIsFormOpen(true); }} 
+                                                onDelete={(id) => handleDeleteBook(id)}
+                                                onUpdateProgress={handleUpdateProgress}
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-center text-stone-500 py-4">No hay libros leyendo que coincidan con los filtros.</p>
+                                )}
+                            </CollapsibleSection>
+
+                            <CollapsibleSection title="Libros Por Leer" initialOpen={false} count={toReadBooks.length}>
+                                {toReadBooks.length > 0 ? (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                                        {toReadBooks.map(book => (
+                                            <BookCard 
+                                                key={book.id} 
+                                                book={book} 
+                                                onEdit={(b) => { setEditingBook(b); setIsFormOpen(true); }} 
+                                                onDelete={(id) => handleDeleteBook(id)}
+                                                onUpdateProgress={handleUpdateProgress}
+                                            />
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-center text-stone-500 py-4">No hay libros por leer que coincidan con los filtros.</p>
+                                )}
+                            </CollapsibleSection>
                         </div>
                     )}
                 </div>
@@ -561,7 +612,7 @@ function App() {
                 <Stats books={books} />
             )}
 
-            {view === View.SHARED_FILES && ( // Render the new component
+            {view === View.SHARED_FILES && (
                 <SharedFiles />
             )}
         </div>
