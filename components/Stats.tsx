@@ -122,24 +122,25 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       b.finishDate && new Date(b.finishDate).getFullYear() === currentYear - 1
     ).length;
 
-    let avgPagesPerMonth = 0;
-    let avgPagesPerDay = 0;
+    let avgPagesPerMonth: number | null = null;
+    let avgPagesPerDay: number | null = null;
     let daysSinceFirstBook = 0;
 
-    // Use totalPages (finished + reading progress) for these averages
     const totalPagesReadIncludingInProgress = totalPagesFinished + totalPagesReading;
 
     if (books.length > 0) {
       const firstBookDate = new Date(books.reduce((min, b) => new Date(b.createdAt) < new Date(min) ? b.createdAt : min, books[0].createdAt));
-      const diffTime = Math.abs(now.getTime() - firstBookDate.getTime());
-      daysSinceFirstBook = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-      const monthsSinceFirstBook = daysSinceFirstBook / 30.44; // Average days in a month
+      const diffTime = now.getTime() - firstBookDate.getTime(); // Difference in milliseconds
 
-      if (monthsSinceFirstBook > 0) {
-        avgPagesPerMonth = totalPagesReadIncludingInProgress / monthsSinceFirstBook;
-      }
-      if (daysSinceFirstBook > 0) {
-        avgPagesPerDay = totalPagesReadIncludingInProgress / daysSinceFirstBook;
+      if (diffTime > 0) {
+        daysSinceFirstBook = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        const monthsSinceFirstBook = daysSinceFirstBook / 30.44;
+
+        // Only calculate averages if enough time has passed to make them meaningful
+        if (daysSinceFirstBook >= 30) { // Require at least 30 days of tracking
+          avgPagesPerMonth = totalPagesReadIncludingInProgress / monthsSinceFirstBook;
+          avgPagesPerDay = totalPagesReadIncludingInProgress / daysSinceFirstBook;
+        }
       }
     }
 
@@ -380,14 +381,14 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
             <Layers size={20} className="text-orange-500" />
             <div>
               <p className="text-sm font-medium">Páginas/Mes</p>
-              <p className="font-bold text-lg">{stats.avgPagesPerMonth.toFixed(0)}</p>
+              <p className="font-bold text-lg">{stats.avgPagesPerMonth !== null ? stats.avgPagesPerMonth.toFixed(0) : 'N/A'}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
             <Layers size={20} className="text-cyan-500" />
             <div>
               <p className="text-sm font-medium">Páginas/Día</p>
-              <p className="font-bold text-lg">{stats.avgPagesPerDay.toFixed(0)}</p>
+              <p className="font-bold text-lg">{stats.avgPagesPerDay !== null ? stats.avgPagesPerDay.toFixed(0) : 'N/A'}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">

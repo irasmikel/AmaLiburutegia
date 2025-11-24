@@ -48,8 +48,8 @@ export interface StatData {
   totalBooksFinishedCurrentYear: number;
   daysSinceLastFinishedBook: number | null;
   mostProductiveMonth: string;
-  avgPagesPerMonth: number;
-  avgPagesPerDay: number;
+  avgPagesPerMonth: number | null; // Changed to nullable
+  avgPagesPerDay: number | null;   // Changed to nullable
   avgDaysPerBookFinished: number | null; // "Lees un libro cada X días de media"
   uniqueAuthorsCount: number; // "Has viajado por X países a través de tus autores" (simplified)
   longestBookPages: number | null;
