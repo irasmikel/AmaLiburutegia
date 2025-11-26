@@ -5,7 +5,6 @@ import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
 import Stats from './components/Stats';
 import CollapsibleSection from './src/components/CollapsibleSection';
-import ExportPdfButton from './src/components/ExportPdfButton'; // Import the new component
 import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check, Star } from 'lucide-react';
 import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx';
 
@@ -599,8 +598,6 @@ function App() {
                                 <option value="asc">Ascendente</option>
                             </select>
                         </div>
-                        {/* Export PDF Button */}
-                        <ExportPdfButton books={books} />
                     </div>
 
                     {loading ? (
