@@ -120,7 +120,6 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       b.finishDate && new Date(b.finishDate).getFullYear() === currentYear - 1
     ).length;
 
-    // Removed avgPagesPerMonth and avgPagesPerDay calculations
     let daysSinceFirstBook = 0;
 
     const totalPagesReadIncludingInProgress = totalPagesFinished; // Only finished books now
@@ -131,11 +130,6 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
 
       if (diffTime > 0) {
         daysSinceFirstBook = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        // const monthsSinceFirstBook = daysSinceFirstBook / 30.44; // Removed
-        // if (daysSinceFirstBook >= 30) { // Removed
-        //   avgPagesPerMonth = totalPagesReadIncludingInProgress / monthsSinceFirstBook; // Removed
-        //   avgPagesPerDay = totalPagesReadIncludingInProgress / daysSinceFirstBook; // Removed
-        // } // Removed
       }
     }
 
