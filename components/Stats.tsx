@@ -12,11 +12,9 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
 
   const calculateStats = (): StatData => {
     const finishedBooks = books.filter(b => b.status === BookStatus.TERMINADO);
-    const readingBooks = books.filter(b => b.status === BookStatus.LEYENDO);
     const toReadBooks = books.filter(b => b.status === BookStatus.POR_LEER);
 
     const totalPagesFinished = finishedBooks.reduce((acc, curr) => acc + curr.totalPages, 0);
-    const totalPagesReading = readingBooks.reduce((acc, curr) => acc + (curr.currentPage || 0), 0);
     const totalPagesOverall = books.reduce((acc, curr) => acc + curr.totalPages, 0); // Total pages of all books (including unfinished)
 
     // Genre Distribution
@@ -31,7 +29,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
         .sort((a, b) => b.value - a.value)
         .slice(0, 5); // Top 5 genres
 
-    // Top Authors
+    // Top Authors (only from finished books)
     const authorMap = new Map<string, number>();
     finishedBooks.forEach(b => {
         if (b.author) {
@@ -83,9 +81,9 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
     const pageThicknessMm = 0.1; // Average thickness per page
     const totalLengthMeters = (totalPagesOverall * pageThicknessMm) / 1000; // Convert mm to meters
 
-    // 2. "Has leído el equivalente a X días de lectura continua"
+    // 2. "Has leído el equivalente a X días de lectura continua" (only finished books)
     const readingSpeedPagesPerHour = 40; // Average reading speed
-    const totalReadingHours = totalPagesOverall / readingSpeedPagesPerHour;
+    const totalReadingHours = totalPagesFinished / readingSpeedPagesPerHour;
     const continuousReadingDays = totalReadingHours / 24;
 
     // 3. "Tu categoría favorita representa X% de tu biblioteca"
@@ -126,7 +124,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
     let avgPagesPerDay: number | null = null;
     let daysSinceFirstBook = 0;
 
-    const totalPagesReadIncludingInProgress = totalPagesFinished + totalPagesReading;
+    const totalPagesReadIncludingInProgress = totalPagesFinished; // Only finished books now
 
     if (books.length > 0) {
       const firstBookDate = new Date(books.reduce((min, b) => new Date(b.createdAt) < new Date(min) ? b.createdAt : min, books[0].createdAt));
@@ -136,8 +134,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
         daysSinceFirstBook = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         const monthsSinceFirstBook = daysSinceFirstBook / 30.44;
 
-        // Only calculate averages if enough time has passed to make them meaningful
-        if (daysSinceFirstBook >= 30) { // Require at least 30 days of tracking
+        if (daysSinceFirstBook >= 30) {
           avgPagesPerMonth = totalPagesReadIncludingInProgress / monthsSinceFirstBook;
           avgPagesPerDay = totalPagesReadIncludingInProgress / daysSinceFirstBook;
         }
@@ -166,7 +163,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       const mostProductive = monthlyProgress.reduce((max, current) => (current.count > max.count ? current : max), monthlyProgress[0]);
       bestMonthName = mostProductive.name;
       bestMonthBooks = mostProductive.count;
-      mostProductiveMonth = mostProductive.name; // For backward compatibility with existing field
+      mostProductiveMonth = mostProductive.name;
 
       const leastProductive = monthlyProgress.reduce((min, current) => (current.count < min.count ? current : min), monthlyProgress[0]);
       worstMonthName = leastProductive.name;
@@ -216,12 +213,11 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
         }
         longestTimeWithoutFinishingBookDays = maxGap;
     } else if (finishedBooks.length === 1 && daysSinceFirstBook > 0) {
-        // If only one book finished, the "gap" is from the start of tracking to that book
         longestTimeWithoutFinishingBookDays = daysSinceFirstBook;
     }
 
 
-    // "Tu récord: X libros en un mes" (simplified from week)
+    // "Tu récord: X libros en un mes"
     const recordBooksInMonth = monthlyProgress.length > 0 
       ? Math.max(...monthlyProgress.map(m => m.count)) 
       : 0;
@@ -231,16 +227,16 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
     if (totalBooksFinishedPreviousYear > 0) {
         paceImprovementPercentage = ((totalBooksFinishedCurrentYear - totalBooksFinishedPreviousYear) / totalBooksFinishedPreviousYear) * 100;
     } else if (totalBooksFinishedCurrentYear > 0) {
-        paceImprovementPercentage = 100; // Read books this year, none last year
+        paceImprovementPercentage = 100;
     }
 
     return {
       totalBooks: finishedBooks.length,
-      totalPages: totalPagesFinished + totalPagesReading, // Only finished + current reading pages
-      readingCount: readingBooks.length,
+      totalPages: totalPagesFinished, // Only finished pages
+      readingCount: 0, // Always 0 now
       toReadCount: toReadBooks.length,
       avgPages: finishedBooks.length > 0 ? Math.round(totalPagesFinished / finishedBooks.length) : 0,
-      streakDays: readingBooks.length > 0 ? 5 : 0, // Mock streak, could be calculated with finishDate
+      streakDays: 0, // Mock streak, could be calculated with finishDate
       genreDistribution,
       monthlyProgress,
       topAuthors,
@@ -322,15 +318,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
                 <Layers size={24} />
             </div>
         </div>
-        <div className="bg-white p-5 rounded-xl border border-stone-100 shadow-sm flex items-center justify-between">
-            <div>
-                <p className="text-stone-500 text-sm font-medium">Leyendo</p>
-                <p className="text-3xl font-bold text-stone-800">{stats.readingCount}</p>
-            </div>
-            <div className="p-3 bg-emerald-100 text-emerald-600 rounded-full">
-                <BookOpen size={24} />
-            </div>
-        </div>
+        {/* Removed "Leyendo" card */}
         <div className="bg-white p-5 rounded-xl border border-stone-100 shadow-sm flex items-center justify-between">
             <div>
                 <p className="text-stone-500 text-sm font-medium">Pendientes</p>
@@ -489,7 +477,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
             <p>Tu autor más leído fue <span className="font-bold text-amber-300">{stats.topAuthors[0].name}</span> con <span className="font-bold text-amber-300">{stats.topAuthors[0].count}</span> libros.</p>
           )}
           {stats.paceImprovementPercentage !== null && (
-            <p>¡Y lo mejor es que has <span className="font-bold text-amber-300">{stats.paceImprovementPercentage >= 0 ? 'mejorado' : 'disminuido'}</span> tu ritmo un <span className="font-bold text-amber-300">{Math.abs(stats.paceImprovementPercentage).toFixed(1)}%</span> respecto al año pasado!</p>
+            <p>¡Y lo mejor es que has <span className="font-bold text-amber-300">{stats.paceImprovementPercentage >= 0 ? 'mejorado' : 'disminuido'}</span> tu ritmo un <span className="font-bold text-amber-300">{Math.abs(stats.paceImprovementPercentage).toFixed(1)}%</span> respecto al año pasado.</p>
           )}
         </div>
       </div>

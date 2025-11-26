@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Book, BookStatus, UserProfile, Genre } from '../types';
-import { X, Sparkles, Loader2, Star, Settings } from 'lucide-react'; // Add Settings icon
+import { X, Sparkles, Loader2, Star, Settings } from 'lucide-react';
 import { suggestBookDetails } from '../services/geminiService';
 import { showError, showSuccess } from '../src/utils/toast.tsx';
-import * as DataService from '../services/dataService'; // Import DataService
-import GenreManager from '../src/components/GenreManager'; // Import GenreManager
+import * as DataService from '../services/dataService';
+import GenreManager from '../src/components/GenreManager';
 
 interface BookFormProps {
   userId: UserProfile;
@@ -18,9 +18,9 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
   const [isGenreManagerOpen, setIsGenreManagerOpen] = useState(false);
   const [formData, setFormData] = useState<Partial<Book>>({
     userId: userId,
-    status: BookStatus.POR_LEER,
-    currentPage: 0,
-    genre: '', // Default to empty or first fetched genre
+    status: BookStatus.POR_LEER, // Default to POR_LEER
+    currentPage: 0, // Default to 0
+    genre: '',
     year: initialData?.year || new Date().getFullYear(),
     ...initialData
   });
@@ -33,7 +33,6 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
   }, []);
 
   useEffect(() => {
-    // Set initial genre if not already set and genres are loaded
     if (!formData.genre && genres.length > 0) {
       setFormData(prev => ({ ...prev, genre: genres[0].name }));
     }
@@ -43,7 +42,6 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
     try {
       const fetchedGenres = await DataService.getGenres();
       setGenres(fetchedGenres);
-      // If initialData has a genre not in the fetched list, add it to the list temporarily
       if (initialData?.genre && !fetchedGenres.some(g => g.name === initialData.genre)) {
         setGenres(prev => [...prev, { id: 'temp', name: initialData.genre, created_at: new Date().toISOString() }]);
       }
@@ -56,7 +54,7 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'totalPages' || name === 'year' || name === 'currentPage' || name === 'rating' 
+      [name]: name === 'totalPages' || name === 'year' || name === 'rating' 
         ? Number(value) 
         : value
     }));
@@ -75,7 +73,6 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
     try {
       const suggestion = await suggestBookDetails(formData.title, formData.author); 
       if (suggestion) {
-        // Ensure suggested genre exists or default to first available
         const suggestedGenre = genres.find(g => g.name === suggestion.genre)?.name || (genres.length > 0 ? genres[0].name : '');
 
         setFormData(prev => ({
@@ -104,18 +101,13 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
       return;
     }
     
-    let finalStatus = formData.status;
-    if (formData.currentPage && formData.currentPage > 0 && formData.currentPage < (formData.totalPages || 0)) {
-        finalStatus = BookStatus.LEYENDO;
-    }
-    if (formData.currentPage === formData.totalPages) {
-        finalStatus = BookStatus.TERMINADO;
-    }
+    // currentPage should be 0 for POR_LEER, and totalPages for TERMINADO
+    const finalCurrentPage = formData.status === BookStatus.TERMINADO ? formData.totalPages : 0;
 
     onSave({
       ...formData,
       userId,
-      status: finalStatus
+      currentPage: finalCurrentPage,
     } as any);
     onClose();
   };
@@ -235,49 +227,47 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
                 <div className="flex bg-gray-100 rounded-lg p-1">
-                  {Object.values(BookStatus).map((status) => (
-                    <button
-                      key={status}
-                      type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, status }))}
-                      className={`flex-1 py-2 text-xs md:text-sm font-medium rounded-md transition-all ${
-                        formData.status === status
-                          ? 'bg-white text-earth-700 shadow-sm'
-                          : 'text-gray-500 hover:text-gray-700'
-                      }`}
-                    >
-                      {status === BookStatus.POR_LEER ? 'Pendiente' : status === BookStatus.LEYENDO ? 'Leyendo' : 'Terminado'}
-                    </button>
-                  ))}
+                  {/* Only POR_LEER and TERMINADO */}
+                  <button
+                    key={BookStatus.POR_LEER}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, status: BookStatus.POR_LEER }))}
+                    className={`flex-1 py-2 text-xs md:text-sm font-medium rounded-md transition-all ${
+                      formData.status === BookStatus.POR_LEER
+                        ? 'bg-white text-earth-700 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Pendiente
+                  </button>
+                  <button
+                    key={BookStatus.TERMINADO}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, status: BookStatus.TERMINADO }))}
+                    className={`flex-1 py-2 text-xs md:text-sm font-medium rounded-md transition-all ${
+                      formData.status === BookStatus.TERMINADO
+                        ? 'bg-white text-earth-700 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    Terminado
+                  </button>
                 </div>
               </div>
-
-              {formData.status === BookStatus.LEYENDO && (
-                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Página Actual</label>
-                    <input
-                      type="number"
-                      name="currentPage"
-                      min="0"
-                      max={formData.totalPages}
-                      value={formData.currentPage || 0}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-earth-400 outline-none"
-                    />
-                     <label className="block text-sm font-medium text-gray-700 mt-2 mb-1">Fecha Inicio</label>
-                    <input
-                      type="date"
-                      name="startDate"
-                      value={formData.startDate || ''}
-                      onChange={handleChange}
-                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-earth-400 outline-none"
-                    />
-                 </div>
-              )}
 
               {formData.status === BookStatus.TERMINADO && (
                 <div className="animate-fade-in space-y-3">
                    <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Inicio</label>
+                        <input
+                        type="date"
+                        name="startDate"
+                        value={formData.startDate || ''}
+                        onChange={handleChange}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-earth-400 outline-none"
+                        />
+                    </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Fecha Fin</label>
                         <input
@@ -288,7 +278,8 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-earth-400 outline-none"
                         />
                     </div>
-                     <div>
+                   </div>
+                   <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Valoración</label>
                         <div className="flex items-center gap-1">
                           {[1, 2, 3, 4, 5].map((starValue) => (
@@ -303,7 +294,6 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
                           ))}
                         </div>
                     </div>
-                   </div>
                 </div>
               )}
 
@@ -342,7 +332,7 @@ const BookForm: React.FC<BookFormProps> = ({ userId, initialData, onClose, onSav
       {isGenreManagerOpen && (
         <GenreManager
           onClose={() => setIsGenreManagerOpen(false)}
-          onGenreUpdated={fetchGenres} // Refresh genres when manager closes or updates
+          onGenreUpdated={fetchGenres}
         />
       )}
     </div>

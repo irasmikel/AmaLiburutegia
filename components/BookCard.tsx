@@ -5,13 +5,13 @@ import { Edit2, Trash2, BookOpen, CheckCircle, Clock, Star } from 'lucide-react'
 // Define STATUS_COLORS and STATUS_LABELS directly in BookCard.tsx
 const STATUS_COLORS: Record<BookStatus, string> = {
   [BookStatus.POR_LEER]: 'bg-orange-50 border-orange-200 text-orange-700',
-  [BookStatus.LEYENDO]: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+  // [BookStatus.LEYENDO]: 'bg-emerald-50 border-emerald-200 text-emerald-700', // Removed
   [BookStatus.TERMINADO]: 'bg-blue-50 border-blue-200 text-blue-700',
 };
 
 const STATUS_LABELS: Record<BookStatus, string> = {
   [BookStatus.POR_LEER]: 'Por Leer',
-  [BookStatus.LEYENDO]: 'Leyendo',
+  // [BookStatus.LEYENDO]: 'Leyendo', // Removed
   [BookStatus.TERMINADO]: 'Terminado',
 };
 
@@ -23,11 +23,12 @@ interface BookCardProps {
 }
 
 const BookCard: React.FC<BookCardProps> = ({ book, onEdit, onDelete, onUpdateProgress }) => {
-  const progressPercent = Math.min(100, Math.round(((book.currentPage || 0) / book.totalPages) * 100));
+  // Progress bar and related logic removed as 'Leyendo' status is gone.
+  // The onUpdateProgress function will now be used to mark a book as finished.
 
   const StatusIcon = {
     [BookStatus.POR_LEER]: Clock,
-    [BookStatus.LEYENDO]: BookOpen,
+    // [BookStatus.LEYENDO]: BookOpen, // Removed
     [BookStatus.TERMINADO]: CheckCircle,
   }[book.status];
 
@@ -66,31 +67,18 @@ const BookCard: React.FC<BookCardProps> = ({ book, onEdit, onDelete, onUpdatePro
         <p className="text-stone-500 text-sm mb-3 line-clamp-1">{book.author}</p>
 
         <div className="mt-auto space-y-3">
-             {/* Progress Bar */}
-            {book.status === BookStatus.LEYENDO && (
-                <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-stone-500">
-                        <span>{book.currentPage} / {book.totalPages} págs</span>
-                        <span>{progressPercent}%</span>
-                    </div>
-                    <div className="h-2 w-full bg-stone-100 rounded-full overflow-hidden">
-                        <div 
-                            className="h-full bg-emerald-500 rounded-full transition-all duration-500"
-                            style={{ width: `${progressPercent}%` }}
-                        />
-                    </div>
-                    <button 
-                        className="text-xs text-emerald-600 font-medium hover:underline mt-1"
-                        onClick={() => {
-                            const newPage = prompt("Introduce la página actual:", book.currentPage?.toString());
-                            if (newPage && !isNaN(Number(newPage))) {
-                                onUpdateProgress(book, Number(newPage));
-                            }
-                        }}
-                    >
-                        Actualizar progreso
-                    </button>
-                </div>
+            {/* Progress Bar removed */}
+            {book.status === BookStatus.POR_LEER && (
+                <button 
+                    className="text-xs text-emerald-600 font-medium hover:underline mt-1"
+                    onClick={() => {
+                        // When a POR_LEER book is updated, it means it's finished.
+                        // We'll pass totalPages to signify completion.
+                        onUpdateProgress(book, book.totalPages);
+                    }}
+                >
+                    Marcar como terminado
+                </button>
             )}
 
             {book.status === BookStatus.TERMINADO && book.rating && (

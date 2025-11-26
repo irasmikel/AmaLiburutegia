@@ -5,7 +5,7 @@ export enum UserProfile {
 
 export enum BookStatus {
   POR_LEER = 'POR_LEER',
-  LEYENDO = 'LEYENDO',
+  // LEYENDO = 'LEYENDO', // Removed
   TERMINADO = 'TERMINADO'
 }
 
@@ -31,7 +31,7 @@ export interface Book {
 export interface StatData {
   totalBooks: number;
   totalPages: number;
-  readingCount: number;
+  readingCount: number; // This will now effectively be 0
   toReadCount: number;
   avgPages: number;
   streakDays: number;
@@ -67,13 +67,13 @@ export interface StatData {
   randomFact: string; // For "Sabías que..."
 }
 
-export interface SharedFile {
-  name: string;
-  path: string;
-  url: string;
-  size?: number;
-  createdAt?: string;
-}
+// export interface SharedFile { // Removed
+//   name: string;
+//   path: string;
+//   url: string;
+//   size?: number;
+//   createdAt?: string;
+// }
 
 export interface Genre {
   id: string;

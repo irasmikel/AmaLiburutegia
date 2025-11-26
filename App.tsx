@@ -4,16 +4,16 @@ import * as DataService from './services/dataService';
 import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
 import Stats from './components/Stats';
-import SharedFiles from './src/components/SharedFiles';
-import CollapsibleSection from './src/components/CollapsibleSection'; // Import the new component
-import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check, FolderOpen } from 'lucide-react';
+// import SharedFiles from './src/components/SharedFiles'; // Removed
+import CollapsibleSection from './src/components/CollapsibleSection';
+import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check } from 'lucide-react'; // Removed FolderOpen
 import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx';
 
 enum View {
   DASHBOARD = 'DASHBOARD',
   LIBRARY = 'LIBRARY',
   STATS = 'STATS',
-  SHARED_FILES = 'SHARED_FILES'
+  // SHARED_FILES = 'SHARED_FILES' // Removed
 }
 
 // SQL for the user to copy if tables are missing
@@ -52,30 +52,30 @@ for all
 using (true) 
 with check (true);
 
--- 4. Crea el bucket de almacenamiento para archivos compartidos (si no existe)
-insert into storage.buckets (id, name, public)
-values ('shared-files', 'shared-files', true)
-on conflict (id) do nothing;
+-- 4. Crea el bucket de almacenamiento para archivos compartidos (si no existe) (Removed)
+-- insert into storage.buckets (id, name, public)
+-- values ('shared-files', 'shared-files', true)
+-- on conflict (id) do nothing;
 
--- 5. Configura las políticas de seguridad para el bucket 'shared-files'
+-- 5. Configura las políticas de seguridad para el bucket 'shared-files' (Removed)
 -- Permite a todos subir archivos (cambiado de 'authenticated' a 'public')
-drop policy if exists "Allow public uploads" on storage.objects;
-create policy "Allow public uploads"
-on storage.objects for insert
-to public
-with check (bucket_id = 'shared-files');
+-- drop policy if exists "Allow public uploads" on storage.objects;
+-- create policy "Allow public uploads"
+-- on storage.objects for insert
+-- to public
+-- with check (bucket_id = 'shared-files');
 
 -- Permite a todos ver archivos
-drop policy if exists "Allow public access" on storage.objects;
-create policy "Allow public access"
-on storage.objects for select
-using (bucket_id = 'shared-files');
+-- drop policy if exists "Allow public access" on storage.objects;
+-- create policy "Allow public access"
+-- on storage.objects for select
+-- using (bucket_id = 'shared-files');
 
 -- Permite a todos eliminar archivos
-drop policy if exists "Allow public delete" on storage.objects;
-create policy "Allow public delete"
-on storage.objects for delete
-using (bucket_id = 'shared-files');
+-- drop policy if exists "Allow public delete" on storage.objects;
+-- create policy "Allow public delete"
+-- on storage.objects for delete
+-- using (bucket_id = 'shared-files');
 
 -- 6. Crea la tabla de géneros (si no existe)
 create table if not exists public.genres (
@@ -115,7 +115,7 @@ on conflict (name) do nothing;
 `;
 
 function App() {
-  const [user, setUser] = useState<UserProfile | null>(UserProfile.MAIXUX); // Default to Maixux
+  const [user, setUser] = useState<UserProfile | null>(UserProfile.MAIXUX);
   const [view, setView] = useState<View>(View.DASHBOARD);
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(false);
@@ -131,7 +131,7 @@ function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<BookStatus | 'ALL'>('ALL');
   const [filterGenre, setFilterGenre] = useState<string>('ALL');
-  const [availableGenres, setAvailableGenres] = useState<string[]>([]); // To populate genre filter
+  const [availableGenres, setAvailableGenres] = useState<string[]>([]);
 
   // Sorting
   const [sortField, setSortField] = useState<keyof Book>('createdAt');
@@ -151,7 +151,6 @@ function App() {
         .catch(err => {
           console.error(err);
           const msg = err.message || JSON.stringify(err);
-          // Check specifically for missing table error (Code 42P01 in Postgres)
           if (msg.includes('relation "public.books" does not exist') || msg.includes('42P01')) {
             setSetupRequired(true);
           } else {
@@ -176,6 +175,13 @@ function App() {
   const handleSaveBook = async (bookData: Book | Omit<Book, 'id' | 'createdAt'>) => {
     setErrorMsg(null);
     try {
+      // Ensure currentPage is totalPages if status is TERMINADO
+      if (bookData.status === BookStatus.TERMINADO) {
+        bookData.currentPage = bookData.totalPages;
+      } else {
+        bookData.currentPage = 0; // For POR_LEER, current page is 0
+      }
+
       if ('id' in bookData) {
           await DataService.updateBook(bookData as Book);
           showSuccess('Libro actualizado correctamente.');
@@ -187,7 +193,7 @@ function App() {
       setBooks(updated);
       setIsFormOpen(false);
       setEditingBook(undefined);
-      fetchAvailableGenres(); // Refresh genres in case a new one was added via AI or form
+      fetchAvailableGenres();
     } catch (err: any) {
       const msg = err.message || JSON.stringify(err);
       showError(`No se pudo guardar el libro: ${msg}`);
@@ -209,7 +215,6 @@ function App() {
         }
       },
       () => {
-        // User cancelled, do nothing or show a cancellation message
         showError('Eliminación cancelada.');
       }
     );
@@ -218,13 +223,25 @@ function App() {
   const handleUpdateProgress = async (book: Book, newPage: number) => {
     setErrorMsg(null);
     let newStatus = book.status;
+    let finalCurrentPage = newPage;
+
     if (newPage >= book.totalPages) {
         newStatus = BookStatus.TERMINADO;
+        finalCurrentPage = book.totalPages; // Ensure it's exactly totalPages
     } else if (newPage > 0) {
-        newStatus = BookStatus.LEYENDO;
+        // If user tries to set a page > 0 but < totalPages, it should still be POR_LEER
+        // as we are removing the LEYENDO status.
+        // For simplicity, if they update progress, it means they finished it.
+        // Or, if they are just updating a finished book's page count (which should be totalPages)
+        newStatus = BookStatus.TERMINADO; // Assume any progress update means it's finished
+        finalCurrentPage = book.totalPages; // Force to finished state
+        showSuccess('Libro marcado como terminado.');
+    } else {
+        newStatus = BookStatus.POR_LEER;
+        finalCurrentPage = 0;
     }
     
-    const updatedBook = { ...book, currentPage: newPage, status: newStatus };
+    const updatedBook = { ...book, currentPage: finalCurrentPage, status: newStatus };
     try {
       await DataService.updateBook(updatedBook);
       const updated = await DataService.getBooks(user!);
@@ -244,9 +261,8 @@ function App() {
 
   // Derived State: Filter and then Sort books
   const sortedAndFilteredBooks = useMemo(() => {
-    let currentBooks = [...books]; // Create a mutable copy
+    let currentBooks = [...books];
 
-    // Apply filters first
     currentBooks = currentBooks.filter(b => {
         const matchesSearch = b.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                               b.author.toLowerCase().includes(searchTerm.toLowerCase());
@@ -255,7 +271,6 @@ function App() {
         return matchesSearch && matchesStatus && matchesGenre;
     });
 
-    // Then apply sorting
     currentBooks.sort((a, b) => {
         let valA: any;
         let valB: any;
@@ -267,7 +282,7 @@ function App() {
                 valB = b[sortField]?.toLowerCase() || '';
                 break;
             case 'rating':
-                valA = a.rating || 0; // Treat undefined ratings as 0 for sorting
+                valA = a.rating || 0;
                 valB = b.rating || 0;
                 break;
             case 'createdAt':
@@ -275,7 +290,7 @@ function App() {
                 valB = b.createdAt;
                 break;
             default:
-                valA = a.title?.toLowerCase() || ''; // Default sort by title
+                valA = a.title?.toLowerCase() || '';
                 valB = b.title?.toLowerCase() || '';
                 break;
         }
@@ -288,41 +303,14 @@ function App() {
     return currentBooks;
   }, [books, searchTerm, filterStatus, filterGenre, sortField, sortDirection]);
 
-  const readingBooks = books.filter(b => b.status === BookStatus.LEYENDO);
-
-  // Filtered books for collapsible sections
+  // No longer tracking "reading" books separately for dashboard
   const finishedBooks = sortedAndFilteredBooks.filter(b => b.status === BookStatus.TERMINADO);
-  const currentlyReadingBooks = sortedAndFilteredBooks.filter(b => b.status === BookStatus.LEYENDO);
   const toReadBooks = sortedAndFilteredBooks.filter(b => b.status === BookStatus.POR_LEER);
 
 
   // Renders
   if (!user) {
-    // This block will technically not be reached anymore as user is defaulted to MAIXUX
-    // but kept for robustness in case of future changes or direct state manipulation.
-    return (
-      <div className="min-h-screen bg-earth-50 flex items-center justify-center p-4">
-        <div className="max-w-4xl w-full">
-          <div className="text-center mb-12">
-             <h1 className="text-4xl md:text-5xl font-bold text-earth-800 mb-4 font-serif">Liburutegia</h1>
-             <p className="text-earth-600 text-lg">Selecciona tu perfil para entrar a tu biblioteca</p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <button 
-                onClick={() => setUser(UserProfile.MAIXUX)}
-                className="group bg-white p-8 rounded-2xl shadow-sm border-2 border-transparent hover:border-earth-400 transition-all transform hover:-translate-y-1"
-            >
-                <div className="w-24 h-24 bg-earth-200 rounded-full mx-auto mb-6 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
-                    👩‍🏫
-                </div>
-                <h2 className="text-2xl font-bold text-center text-earth-900">Maixux</h2>
-                <p className="text-center text-earth-500 mt-2">Entrar a mi biblioteca</p>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+    return null; // Should not be reached as user is defaulted
   }
 
   // Database Setup Screen
@@ -395,7 +383,6 @@ function App() {
           <div className="flex items-center gap-4">
              <div className="flex items-center gap-2 px-3 py-1.5 bg-earth-100 rounded-full">
                 <span className="text-sm font-medium text-earth-800">{user}</span>
-                {/* Removed the LogOut button as there's only one user now */}
              </div>
           </div>
         </div>
@@ -437,13 +424,6 @@ function App() {
                     <BarChart2 size={20} />
                     <span className="text-xs md:text-sm font-medium">Estadísticas</span>
                 </button>
-                <button 
-                    onClick={() => setView(View.SHARED_FILES)}
-                    className={`flex flex-col md:flex-row items-center gap-1 md:gap-2 px-4 py-2 rounded-lg transition-colors ${view === View.SHARED_FILES ? 'text-earth-700 bg-earth-100' : 'text-gray-500 hover:text-gray-900'}`}
-                >
-                    <FolderOpen size={20} />
-                    <span className="text-xs md:text-sm font-medium">Archivos</span>
-                </button>
                  <button 
                     onClick={() => { setEditingBook(undefined); setIsFormOpen(true); }}
                     className="md:ml-auto flex flex-col md:flex-row items-center gap-1 md:gap-2 px-4 py-2 rounded-lg bg-earth-600 text-white shadow-md hover:bg-earth-700 transition-colors"
@@ -462,31 +442,11 @@ function App() {
                      <div className="bg-gradient-to-r from-earth-600 to-earth-500 rounded-2xl p-6 text-white shadow-lg">
                         <h2 className="text-2xl font-bold mb-2">¡Hola, {user}!</h2>
                         <p className="opacity-90">
-                            {readingBooks.length > 0 
-                                ? `Estás leyendo ${readingBooks.length} libros actualmente. ¡Sigue así!`
-                                : 'No estás leyendo nada ahora mismo. ¿Buscamos algo en la estantería?'}
+                            {toReadBooks.length > 0 
+                                ? `Tienes ${toReadBooks.length} libros pendientes. ¡A por ellos!`
+                                : 'No tienes libros pendientes ahora mismo. ¡Añade uno nuevo!'}
                         </p>
                      </div>
-
-                     {readingBooks.length > 0 && (
-                        <div>
-                            <h3 className="text-lg font-bold text-stone-800 mb-4 flex items-center gap-2">
-                                <span className="w-2 h-6 bg-emerald-500 rounded-full"></span>
-                                Leyendo Ahora
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {readingBooks.map(book => (
-                                    <BookCard 
-                                        key={book.id} 
-                                        book={book} 
-                                        onEdit={(b) => { setEditingBook(b); setIsFormOpen(true); }} 
-                                        onDelete={handleDeleteBook}
-                                        onUpdateProgress={handleUpdateProgress}
-                                    />
-                                ))}
-                            </div>
-                        </div>
-                     )}
 
                     {/* Quick Stats Preview */}
                      <div>
@@ -533,7 +493,6 @@ function App() {
                             >
                                 <option value="ALL">Todos los estados</option>
                                 <option value={BookStatus.POR_LEER}>Por Leer</option>
-                                <option value={BookStatus.LEYENDO}>Leyendo</option>
                                 <option value={BookStatus.TERMINADO}>Terminados</option>
                             </select>
                              <select 
@@ -600,24 +559,6 @@ function App() {
                                 )}
                             </CollapsibleSection>
 
-                            <CollapsibleSection title="Libros Leyendo" initialOpen={false} count={currentlyReadingBooks.length}>
-                                {currentlyReadingBooks.length > 0 ? (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                                        {currentlyReadingBooks.map(book => (
-                                            <BookCard 
-                                                key={book.id} 
-                                                book={book} 
-                                                onEdit={(b) => { setEditingBook(b); setIsFormOpen(true); }} 
-                                                onDelete={(id) => handleDeleteBook(id)}
-                                                onUpdateProgress={handleUpdateProgress}
-                                            />
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-center text-stone-500 py-4">No hay libros leyendo que coincidan con los filtros.</p>
-                                )}
-                            </CollapsibleSection>
-
                             <CollapsibleSection title="Libros Por Leer" initialOpen={false} count={toReadBooks.length}>
                                 {toReadBooks.length > 0 ? (
                                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -642,10 +583,6 @@ function App() {
 
             {view === View.STATS && (
                 <Stats books={books} />
-            )}
-
-            {view === View.SHARED_FILES && (
-                <SharedFiles />
             )}
         </div>
 

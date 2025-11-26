@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { Book, UserProfile, BookStatus, SharedFile, Genre } from '../types';
+import { Book, UserProfile, BookStatus, Genre } from '../types';
 
 // Supabase Configuration
 const SUPABASE_URL = 'https://iaxvnfrplqmxgohsaeci.supabase.co';
@@ -124,69 +124,11 @@ export const deleteBook = async (bookId: string): Promise<void> => {
   }
 };
 
-// --- Supabase Storage Functions for Shared Files ---
-const SHARED_FILES_BUCKET = 'shared-files';
-
-export const uploadFile = async (file: File): Promise<SharedFile> => {
-  const fileName = file.name; // Usar el nombre original del archivo
-  const { data, error } = await supabase.storage
-    .from(SHARED_FILES_BUCKET)
-    .upload(fileName, file, {
-      cacheControl: '3600',
-      upsert: true, // Cambiado a 'true' para permitir sobrescribir si el nombre ya existe
-    });
-
-  if (error) {
-    console.error('Supabase Upload Error:', error);
-    throw new Error(getErrorMessage(error));
-  }
-
-  const { data: publicUrlData } = supabase.storage
-    .from(SHARED_FILES_BUCKET)
-    .getPublicUrl(fileName);
-
-  return {
-    name: file.name,
-    path: data.path,
-    url: publicUrlData.publicUrl,
-    size: file.size,
-    createdAt: new Date().toISOString(), // Supabase storage doesn't return created_at directly on upload
-  };
-};
-
-export const getSharedFiles = async (): Promise<SharedFile[]> => {
-  const { data, error } = await supabase.storage
-    .from(SHARED_FILES_BUCKET)
-    .list('', {
-      limit: 100,
-      offset: 0,
-      sortBy: { column: 'created_at', order: 'desc' },
-    });
-
-  if (error) {
-    console.error('Supabase List Files Error:', error);
-    throw new Error(getErrorMessage(error));
-  }
-
-  return (data || []).map(file => ({
-    name: file.name,
-    path: file.id, // Supabase list returns 'id' as the path
-    url: supabase.storage.from(SHARED_FILES_BUCKET).getPublicUrl(file.name).data.publicUrl,
-    size: file.metadata?.size,
-    createdAt: file.created_at,
-  }));
-};
-
-export const deleteSharedFile = async (filePath: string): Promise<void> => {
-  const { error } = await supabase.storage
-    .from(SHARED_FILES_BUCKET)
-    .remove([filePath]);
-
-  if (error) {
-    console.error('Supabase Delete File Error:', error);
-    throw new Error(getErrorMessage(error));
-  }
-};
+// --- Supabase Storage Functions for Shared Files --- (Removed)
+// const SHARED_FILES_BUCKET = 'shared-files';
+// export const uploadFile = async (file: File): Promise<SharedFile> => { /* ... */ };
+// export const getSharedFiles = async (): Promise<SharedFile[]> => { /* ... */ };
+// export const deleteSharedFile = async (filePath: string): Promise<void> => { /* ... */ };
 
 // --- Genre Management Functions ---
 export const getGenres = async (): Promise<Genre[]> => {
