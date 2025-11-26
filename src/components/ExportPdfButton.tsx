@@ -2,10 +2,22 @@
 
 import React, { useState } from 'react';
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable'; // Importar autoTable como una función
+import 'jspdf-autotable'; // Importar para extender el prototipo de jsPDF
 import { Download, Loader2 } from 'lucide-react';
-import { Book, BookStatus } from '../../types'; // Ruta corregida
+import { Book, BookStatus } from '../../types';
 import { showError, showSuccess } from '../utils/toast';
+
+// Extender la interfaz de jsPDF para incluir autoTable
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => void;
+    autoTable: {
+      previous: {
+        finalY: number;
+      };
+    };
+  }
+}
 
 interface ExportPdfButtonProps {
   books: Book[];
@@ -58,7 +70,8 @@ const ExportPdfButton: React.FC<ExportPdfButtonProps> = ({ books }) => {
           doc.text(`${rating} Estrella${rating > 1 ? 's' : ''} (${ratedBooks.length} libros)`, 14, yOffset);
           yOffset += 7;
 
-          const tableResult = autoTable(doc, { // Llamar autoTable como función y capturar el resultado
+          // Llamar autoTable desde la instancia de doc
+          doc.autoTable({ 
             startY: yOffset,
             head: [['Título', 'Autor', 'Páginas', 'Género', 'Fecha Fin']],
             body: ratedBooks.map(book => [
@@ -79,7 +92,14 @@ const ExportPdfButton: React.FC<ExportPdfButtonProps> = ({ books }) => {
               doc.text(str, data.settings.margin.left, doc.internal.pageSize.height - 10);
             }
           });
-          yOffset = tableResult.finalY + 10; // Acceder a finalY desde el objeto retornado
+          // Acceder a previous desde doc.autoTable
+          if (doc.autoTable.previous && doc.autoTable.previous.finalY !== undefined) {
+            yOffset = doc.autoTable.previous.finalY + 10;
+          } else {
+            console.error("doc.autoTable.previous o finalY es undefined después de la tabla de rating.");
+            // Fallback: estimar la altura de la tabla si no se puede obtener finalY
+            yOffset += (ratedBooks.length * 10) + 30; 
+          }
         }
       }
 
@@ -93,7 +113,8 @@ const ExportPdfButton: React.FC<ExportPdfButtonProps> = ({ books }) => {
         doc.text(`Sin Calificación (${unratedBooks.length} libros)`, 14, yOffset);
         yOffset += 7;
 
-        autoTable(doc, { // Llamar autoTable como función
+        // Llamar autoTable desde la instancia de doc
+        doc.autoTable({ 
           startY: yOffset,
           head: [['Título', 'Autor', 'Páginas', 'Género', 'Fecha Fin']],
           body: unratedBooks.map(book => [
@@ -113,6 +134,12 @@ const ExportPdfButton: React.FC<ExportPdfButtonProps> = ({ books }) => {
             doc.text(str, data.settings.margin.left, doc.internal.pageSize.height - 10);
           }
         });
+        if (doc.autoTable.previous && doc.autoTable.previous.finalY !== undefined) {
+            yOffset = doc.autoTable.previous.finalY + 10;
+        } else {
+            console.error("doc.autoTable.previous o finalY es undefined después de la tabla de no calificados.");
+            yOffset += (unratedBooks.length * 10) + 30;
+        }
       }
 
       doc.save('libros_terminados_calificaciones.pdf');
