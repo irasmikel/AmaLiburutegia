@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Book, BookStatus, StatData } from '../types';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LineChart, Line, CartesianGrid } from 'recharts';
-import { Trophy, BookOpen, Layers, Clock, Users, Lightbulb, CalendarDays, BookCheck, TrendingUp, Globe, BookMarked, Award } from 'lucide-react'; // Added new icons
+import { Trophy, BookOpen, Layers, Clock, Users, Lightbulb, CalendarDays, BookCheck, TrendingUp, Globe, BookMarked, Award, Download, Loader2 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
+import { showSuccess, showError } from '../src/utils/toast';
 
 interface StatsProps {
   books: Book[];
@@ -9,6 +12,8 @@ interface StatsProps {
 
 const Stats: React.FC<StatsProps> = ({ books }) => {
   const [randomFact, setRandomFact] = useState('');
+  const [isExporting, setIsExporting] = useState(false);
+  const statsRef = useRef<HTMLDivElement>(null); // Ref para el contenido a exportar
 
   const calculateStats = (): StatData => {
     const finishedBooks = books.filter(b => b.status === BookStatus.TERMINADO);
@@ -286,246 +291,297 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
     }
   }, [funFactsList]);
 
+  const handleExportPdf = async () => {
+    if (!statsRef.current) {
+      showError('No se pudo encontrar el contenido para exportar.');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(statsRef.current, {
+        scale: 2, // Aumenta la escala para mejor calidad
+        useCORS: true, // Importante si hay imágenes de diferentes orígenes
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4'); // 'p' for portrait, 'mm' for millimeters, 'a4' for A4 size
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save('estadisticas-liburutegia.pdf');
+      showSuccess('Estadísticas exportadas a PDF.');
+    } catch (error: any) {
+      console.error('Error al exportar a PDF:', error);
+      showError(`Error al exportar a PDF: ${error.message || 'Error desconocido'}`);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
-      
-      {/* Top Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-xl border border-stone-100 shadow-sm flex items-center justify-between">
-            <div>
-                <p className="text-stone-500 text-sm font-medium">Libros Leídos</p>
-                <p className="text-3xl font-bold text-stone-800">{stats.totalBooks}</p>
-            </div>
-            <div className="p-3 bg-amber-100 text-amber-600 rounded-full">
-                <Trophy size={24} />
-            </div>
-        </div>
-        <div className="bg-white p-5 rounded-xl border border-stone-100 shadow-sm flex items-center justify-between">
-            <div>
-                <p className="text-stone-500 text-sm font-medium">Páginas</p>
-                <p className="text-3xl font-bold text-stone-800">{stats.totalPages.toLocaleString()}</p>
-            </div>
-            <div className="p-3 bg-stone-100 text-stone-600 rounded-full">
-                <Layers size={24} />
-            </div>
-        </div>
-        {/* Removed "Leyendo" card */}
-        <div className="bg-white p-5 rounded-xl border border-stone-100 shadow-sm flex items-center justify-between">
-            <div>
-                <p className="text-stone-500 text-sm font-medium">Pendientes</p>
-                <p className="text-3xl font-bold text-stone-800">{stats.toReadCount}</p>
-            </div>
-            <div className="p-3 bg-orange-100 text-orange-600 rounded-full">
-                <Clock size={24} />
-            </div>
-        </div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-earth-800">Tus Estadísticas</h2>
+        <button
+          onClick={handleExportPdf}
+          disabled={isExporting}
+          className="px-4 py-2 bg-earth-600 text-white rounded-lg font-medium shadow-md hover:bg-earth-700 transition-all flex items-center justify-center gap-2"
+        >
+          {isExporting ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
+          {isExporting ? 'Exportando...' : 'Exportar a PDF'}
+        </button>
       </div>
 
-      {/* Sabías que... */}
-      {randomFact && (
-        <div className="bg-gradient-to-r from-earth-600 to-earth-500 rounded-2xl p-6 text-white shadow-lg flex items-center gap-4">
-          <Lightbulb size={28} className="flex-shrink-0" />
-          <p className="text-lg font-medium">{randomFact}</p>
-        </div>
-      )}
-
-      {/* General Statistics */}
-      <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
-        <h3 className="text-lg font-bold text-stone-800 mb-6 flex items-center gap-2">
-          <BookCheck size={20} className="text-earth-600" /> Estadísticas Generales
-        </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-stone-700">
-          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
-            <Trophy size={20} className="text-amber-500" />
-            <div>
-              <p className="text-sm font-medium">Libros Leídos (Año Actual)</p>
-              <p className="font-bold text-lg">{stats.totalBooksFinishedCurrentYear}</p>
-            </div>
+      <div ref={statsRef} className="space-y-6"> {/* Contenido a exportar */}
+        {/* Top Cards */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white p-5 rounded-xl border border-stone-100 shadow-sm flex items-center justify-between">
+              <div>
+                  <p className="text-stone-500 text-sm font-medium">Libros Leídos</p>
+                  <p className="text-3xl font-bold text-stone-800">{stats.totalBooks}</p>
+              </div>
+              <div className="p-3 bg-amber-100 text-amber-600 rounded-full">
+                  <Trophy size={24} />
+              </div>
           </div>
-          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
-            <Clock size={20} className="text-purple-500" />
-            <div>
-              <p className="text-sm font-medium">Días desde último libro</p>
-              <p className="font-bold text-lg">{stats.daysSinceLastFinishedBook !== null ? stats.daysSinceLastFinishedBook : 'N/A'}</p>
-            </div>
+          <div className="bg-white p-5 rounded-xl border border-stone-100 shadow-sm flex items-center justify-between">
+              <div>
+                  <p className="text-stone-500 text-sm font-medium">Páginas</p>
+                  <p className="text-3xl font-bold text-stone-800">{stats.totalPages.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-stone-100 text-stone-600 rounded-full">
+                  <Layers size={24} />
+              </div>
           </div>
-          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
-            <CalendarDays size={20} className="text-red-500" />
-            <div>
-              <p className="text-sm font-medium">Mes más productivo</p>
-              <p className="font-bold text-lg">{stats.mostProductiveMonth}</p>
-            </div>
-          </div>
-          {/* Removed Páginas/Mes */}
-          {/* Removed Páginas/Día */}
-          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
-            <BookMarked size={20} className="text-green-500" />
-            <div>
-              <p className="text-sm font-medium">Páginas promedio por libro</p>
-              <p className="font-bold text-lg">{stats.avgPagesPerBookFinished.toFixed(0)}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
-            <Clock size={20} className="text-indigo-500" />
-            <div>
-              <p className="text-sm font-medium">Libro cada</p>
-              <p className="font-bold text-lg">{stats.avgDaysPerBookFinished !== null ? `${stats.avgDaysPerBookFinished.toFixed(1)} días` : 'N/A'}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
-            <Globe size={20} className="text-blue-500" />
-            <div>
-              <p className="text-sm font-medium">Autores únicos</p>
-              <p className="font-bold text-lg">{stats.uniqueAuthorsCount}</p>
-            </div>
+          <div className="bg-white p-5 rounded-xl border border-stone-100 shadow-sm flex items-center justify-between">
+              <div>
+                  <p className="text-stone-500 text-sm font-medium">Pendientes</p>
+                  <p className="text-3xl font-bold text-stone-800">{stats.toReadCount}</p>
+              </div>
+              <div className="p-3 bg-orange-100 text-orange-600 rounded-full">
+                  <Clock size={24} />
+              </div>
           </div>
         </div>
-      </div>
 
-      {/* Datos Curiosos */}
-      <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
-        <h3 className="text-lg font-bold text-stone-800 mb-6 flex items-center gap-2">
-          <Lightbulb size={20} className="text-earth-600" /> Más Datos Curiosos
-        </h3>
-        <ul className="space-y-3 text-stone-700">
-          <li>
-            <span className="font-medium">Si pusieras todos tus libros en fila:</span> medirían <span className="font-bold text-earth-700">{stats.totalLengthMeters.toFixed(2)}</span> metros.
-          </li>
-          <li>
-            <span className="font-medium">Has leído el equivalente a:</span> <span className="font-bold text-earth-700">{stats.continuousReadingDays.toFixed(1)}</span> días de lectura continua.
-          </li>
-          <li>
-            <span className="font-medium">Tu categoría favorita ({stats.favoriteGenreName}):</span> representa un <span className="font-bold text-earth-700">{stats.favoriteGenrePercentage.toFixed(1)}%</span> de tu biblioteca.
-          </li>
-          <li>
-            <span className="font-medium">Comparado con el mes anterior:</span> este mes leíste un <span className="font-bold text-earth-700">{stats.monthlyComparisonPercentage >= 0 ? '+' : ''}{stats.monthlyComparisonPercentage.toFixed(1)}%</span>.
-          </li>
-          {stats.longestBookPages && (
-            <li>
-              <span className="font-medium">El libro más largo que leíste:</span> tenía <span className="font-bold text-earth-700">{stats.longestBookPages}</span> páginas.
-            </li>
-          )}
-          {stats.shortestBookPages && (
-            <li>
-              <span className="font-medium">El libro más corto que leíste:</span> tenía <span className="font-bold text-earth-700">{stats.shortestBookPages}</span> páginas.
-            </li>
-          )}
-          {stats.pageDifferenceLongShort !== null && (
-            <li>
-              <span className="font-medium">Diferencia entre tu libro más largo y corto:</span> <span className="font-bold text-earth-700">{stats.pageDifferenceLongShort}</span> páginas.
-            </li>
-          )}
-          {stats.worstMonthName !== 'N/A' && (
-            <li>
-              <span className="font-medium">Tu peor mes:</span> <span className="font-bold text-earth-700">{stats.worstMonthBooks}</span> libros en <span className="font-bold text-earth-700">{stats.worstMonthName}</span> (¡pero seguiste leyendo!).
-            </li>
-          )}
-          {stats.longestTimeWithoutFinishingBookDays !== null && (
-            <li>
-              <span className="font-medium">Racha más larga sin terminar un libro:</span> <span className="font-bold text-earth-700">{stats.longestTimeWithoutFinishingBookDays}</span> días.
-            </li>
-          )}
-          {stats.recordBooksInMonth > 0 && (
-            <li>
-              <span className="font-medium">Tu récord:</span> <span className="font-bold text-earth-700">{stats.recordBooksInMonth}</span> libros en un mes.
-            </li>
-          )}
-          {stats.paceImprovementPercentage !== null && (
-            <li>
-              <span className="font-medium">Has mejorado tu ritmo:</span> un <span className="font-bold text-earth-700">{stats.paceImprovementPercentage >= 0 ? '+' : ''}{stats.paceImprovementPercentage.toFixed(1)}%</span> respecto al año pasado.
-            </li>
-          )}
-        </ul>
-      </div>
+        {/* Sabías que... */}
+        {randomFact && (
+          <div className="bg-gradient-to-r from-earth-600 to-earth-500 rounded-2xl p-6 text-white shadow-lg flex items-center gap-4">
+            <Lightbulb size={28} className="flex-shrink-0" />
+            <p className="text-lg font-medium">{randomFact}</p>
+          </div>
+        )}
 
-      {/* Resumen Anual (Spotify Wrapped style) */}
-      <div className="bg-gradient-to-br from-earth-700 to-earth-900 rounded-2xl p-8 text-white shadow-xl">
-        <h3 className="text-3xl font-bold mb-6 flex items-center gap-3">
-          <Award size={32} className="text-amber-300" /> Tu Resumen Anual {new Date().getFullYear()}
-        </h3>
-        <div className="space-y-4 text-lg">
-          <p>¡Este año ha sido increíble para tu biblioteca!</p>
-          <p>Has terminado un total de <span className="font-bold text-amber-300">{stats.totalBooksFinishedCurrentYear}</span> libros.</p>
-          {stats.bestMonthName !== 'N/A' && (
-            <p>Tu mes estrella fue <span className="font-bold text-amber-300">{stats.bestMonthName}</span>, donde leíste <span className="font-bold text-amber-300">{stats.bestMonthBooks}</span> libros.</p>
-          )}
-          {stats.favoriteGenreName !== 'N/A' && (
-            <p>Tu género más explorado fue <span className="font-bold text-amber-300">{stats.favoriteGenreName}</span>.</p>
-          )}
-          {stats.topAuthors.length > 0 && (
-            <p>Tu autor más leído fue <span className="font-bold text-amber-300">{stats.topAuthors[0].name}</span> con <span className="font-bold text-amber-300">{stats.topAuthors[0].count}</span> libros.</p>
-          )}
-          {stats.paceImprovementPercentage !== null && (
-            <p>¡Y lo mejor es que has <span className="font-bold text-amber-300">{stats.paceImprovementPercentage >= 0 ? 'mejorado' : 'disminuido'}</span> tu ritmo un <span className="font-bold text-amber-300">{Math.abs(stats.paceImprovementPercentage).toFixed(1)}%</span> respecto al año pasado.</p>
-          )}
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* General Statistics */}
         <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
-            <h3 className="text-lg font-bold text-stone-800 mb-6">Géneros Favoritos</h3>
-            <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.genreDistribution} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                        <XAxis type="number" hide />
-                        <YAxis type="category" dataKey="name" width={100} tick={{fontSize: 12, fill: '#78716c'}} />
-                        <Tooltip 
-                            cursor={{fill: 'transparent'}}
-                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        />
-                        <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
-                            {stats.genreDistribution.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                        </Bar>
-                    </BarChart>
-                </ResponsiveContainer>
+          <h3 className="text-lg font-bold text-stone-800 mb-6 flex items-center gap-2">
+            <BookCheck size={20} className="text-earth-600" /> Estadísticas Generales
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-stone-700">
+            <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+              <Trophy size={20} className="text-amber-500" />
+              <div>
+                <p className="text-sm font-medium">Libros Leídos (Año Actual)</p>
+                <p className="font-bold text-lg">{stats.totalBooksFinishedCurrentYear}</p>
+              </div>
             </div>
+            <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+              <Clock size={20} className="text-purple-500" />
+              <div>
+                <p className="text-sm font-medium">Días desde último libro</p>
+                <p className="font-bold text-lg">{stats.daysSinceLastFinishedBook !== null ? stats.daysSinceLastFinishedBook : 'N/A'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+              <CalendarDays size={20} className="text-red-500" />
+              <div>
+                <p className="text-sm font-medium">Mes más productivo</p>
+                <p className="font-bold text-lg">{stats.mostProductiveMonth}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+              <BookMarked size={20} className="text-green-500" />
+              <div>
+                <p className="text-sm font-medium">Páginas promedio por libro</p>
+                <p className="font-bold text-lg">{stats.avgPagesPerBookFinished.toFixed(0)}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+              <Clock size={20} className="text-indigo-500" />
+              <div>
+                <p className="text-sm font-medium">Libro cada</p>
+                <p className="font-bold text-lg">{stats.avgDaysPerBookFinished !== null ? `${stats.avgDaysPerBookFinished.toFixed(1)} días` : 'N/A'}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
+              <Globe size={20} className="text-blue-500" />
+              <div>
+                <p className="text-sm font-medium">Autores únicos</p>
+                <p className="font-bold text-lg">{stats.uniqueAuthorsCount}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
+        {/* Datos Curiosos */}
         <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
-             <h3 className="text-lg font-bold text-stone-800 mb-6">Autores Más Leídos</h3>
-             <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.topAuthors} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
-                        <XAxis type="number" hide />
-                        <YAxis type="category" dataKey="name" width={100} tick={{fontSize: 12, fill: '#78716c'}} />
-                        <Tooltip 
-                            cursor={{fill: 'transparent'}}
-                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        />
-                        <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
-                            {stats.topAuthors.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                        </Bar>
-                    </BarChart>
-                </ResponsiveContainer>
-             </div>
+          <h3 className="text-lg font-bold text-stone-800 mb-6 flex items-center gap-2">
+            <Lightbulb size={20} className="text-earth-600" /> Más Datos Curiosos
+          </h3>
+          <ul className="space-y-3 text-stone-700">
+            <li>
+              <span className="font-medium">Si pusieras todos tus libros en fila:</span> medirían <span className="font-bold text-earth-700">{stats.totalLengthMeters.toFixed(2)}</span> metros.
+            </li>
+            <li>
+              <span className="font-medium">Has leído el equivalente a:</span> <span className="font-bold text-earth-700">{stats.continuousReadingDays.toFixed(1)}</span> días de lectura continua.
+            </li>
+            <li>
+              <span className="font-medium">Tu categoría favorita ({stats.favoriteGenreName}):</span> representa un <span className="font-bold text-earth-700">{stats.favoriteGenrePercentage.toFixed(1)}%</span> de tu biblioteca.
+            </li>
+            <li>
+              <span className="font-medium">Comparado con el mes anterior:</span> este mes leíste un <span className="font-bold text-earth-700">{stats.monthlyComparisonPercentage >= 0 ? '+' : ''}{stats.monthlyComparisonPercentage.toFixed(1)}%</span>.
+            </li>
+            {stats.longestBookPages && (
+              <li>
+                <span className="font-medium">El libro más largo que leíste:</span> tenía <span className="font-bold text-earth-700">{stats.longestBookPages}</span> páginas.
+              </li>
+            )}
+            {stats.shortestBookPages && (
+              <li>
+                <span className="font-medium">El libro más corto que leíste:</span> tenía <span className="font-bold text-earth-700">{stats.shortestBookPages}</span> páginas.
+              </li>
+            )}
+            {stats.pageDifferenceLongShort !== null && (
+              <li>
+                <span className="font-medium">Diferencia entre tu libro más largo y corto:</span> <span className="font-bold text-earth-700">{stats.pageDifferenceLongShort}</span> páginas.
+              </li>
+            )}
+            {stats.worstMonthName !== 'N/A' && (
+              <li>
+                <span className="font-medium">Tu peor mes:</span> <span className="font-bold text-earth-700">{stats.worstMonthBooks}</span> libros en <span className="font-bold text-earth-700">{stats.worstMonthName}</span> (¡pero seguiste leyendo!).
+              </li>
+            )}
+            {stats.longestTimeWithoutFinishingBookDays !== null && (
+              <li>
+                <span className="font-medium">Racha más larga sin terminar un libro:</span> <span className="font-bold text-earth-700">{stats.longestTimeWithoutFinishingBookDays}</span> días.
+              </li>
+            )}
+            {stats.recordBooksInMonth > 0 && (
+              <li>
+                <span className="font-medium">Tu récord:</span> <span className="font-bold text-earth-700">{stats.recordBooksInMonth}</span> libros en un mes.
+              </li>
+            )}
+            {stats.paceImprovementPercentage !== null && (
+              <li>
+                <span className="font-medium">Has mejorado tu ritmo:</span> un <span className="font-bold text-earth-700">{stats.paceImprovementPercentage >= 0 ? '+' : ''}{stats.paceImprovementPercentage.toFixed(1)}%</span> respecto al año pasado.
+              </li>
+            )}
+          </ul>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm lg:col-span-2">
-             <h3 className="text-lg font-bold text-stone-800 mb-6">Libros Leídos por Mes (Últimos 12 meses)</h3>
-             <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                        data={stats.monthlyProgress}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                    >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                        <XAxis dataKey="name" tick={{fontSize: 12, fill: '#78716c'}} />
-                        <YAxis allowDecimals={false} tick={{fontSize: 12, fill: '#78716c'}} />
-                        <Tooltip 
-                            contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        />
-                        <Line type="monotone" dataKey="count" stroke="#b5763e" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                    </LineChart>
-                </ResponsiveContainer>
-             </div>
+        {/* Resumen Anual (Spotify Wrapped style) */}
+        <div className="bg-gradient-to-br from-earth-700 to-earth-900 rounded-2xl p-8 text-white shadow-xl">
+          <h3 className="text-3xl font-bold mb-6 flex items-center gap-3">
+            <Award size={32} className="text-amber-300" /> Tu Resumen Anual {new Date().getFullYear()}
+          </h3>
+          <div className="space-y-4 text-lg">
+            <p>¡Este año ha sido increíble para tu biblioteca!</p>
+            <p>Has terminado un total de <span className="font-bold text-amber-300">{stats.totalBooksFinishedCurrentYear}</span> libros.</p>
+            {stats.bestMonthName !== 'N/A' && (
+              <p>Tu mes estrella fue <span className="font-bold text-amber-300">{stats.bestMonthName}</span>, donde leíste <span className="font-bold text-amber-300">{stats.bestMonthBooks}</span> libros.</p>
+            )}
+            {stats.favoriteGenreName !== 'N/A' && (
+              <p>Tu género más explorado fue <span className="font-bold text-amber-300">{stats.favoriteGenreName}</span>.</p>
+            )}
+            {stats.topAuthors.length > 0 && (
+              <p>Tu autor más leído fue <span className="font-bold text-amber-300">{stats.topAuthors[0].name}</span> con <span className="font-bold text-amber-300">{stats.topAuthors[0].count}</span> libros.</p>
+            )}
+            {stats.paceImprovementPercentage !== null && (
+              <p>¡Y lo mejor es que has <span className="font-bold text-amber-300">{stats.paceImprovementPercentage >= 0 ? 'mejorado' : 'disminuido'}</span> tu ritmo un <span className="font-bold text-amber-300">{Math.abs(stats.paceImprovementPercentage).toFixed(1)}%</span> respecto al año pasado.</p>
+            )}
+          </div>
         </div>
-      </div>
+
+        {/* Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
+              <h3 className="text-lg font-bold text-stone-800 mb-6">Géneros Favoritos</h3>
+              <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={stats.genreDistribution} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                          <XAxis type="number" hide />
+                          <YAxis type="category" dataKey="name" width={100} tick={{fontSize: 12, fill: '#78716c'}} />
+                          <Tooltip 
+                              cursor={{fill: 'transparent'}}
+                              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          />
+                          <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={20}>
+                              {stats.genreDistribution.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                          </Bar>
+                      </BarChart>
+                  </ResponsiveContainer>
+              </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
+               <h3 className="text-lg font-bold text-stone-800 mb-6">Autores Más Leídos</h3>
+               <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={stats.topAuthors} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                          <XAxis type="number" hide />
+                          <YAxis type="category" dataKey="name" width={100} tick={{fontSize: 12, fill: '#78716c'}} />
+                          <Tooltip 
+                              cursor={{fill: 'transparent'}}
+                              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          />
+                          <Bar dataKey="count" radius={[0, 4, 4, 0]} barSize={20}>
+                              {stats.topAuthors.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                          </Bar>
+                      </BarChart>
+                  </ResponsiveContainer>
+               </div>
+          </div>
+
+          <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm lg:col-span-2">
+               <h3 className="text-lg font-bold text-stone-800 mb-6">Libros Leídos por Mes (Últimos 12 meses)</h3>
+               <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                          data={stats.monthlyProgress}
+                          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                      >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+                          <XAxis dataKey="name" tick={{fontSize: 12, fill: '#78716c'}} />
+                          <YAxis allowDecimals={false} tick={{fontSize: 12, fill: '#78716c'}} />
+                          <Tooltip 
+                              contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          />
+                          <Line type="monotone" dataKey="count" stroke="#b5763e" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                      </LineChart>
+                  </ResponsiveContainer>
+               </div>
+          </div>
+        </div>
+      </div> {/* Fin del contenido a exportar */}
     </div>
   );
 };
