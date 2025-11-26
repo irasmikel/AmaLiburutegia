@@ -1,6 +1,6 @@
 export enum UserProfile {
   MAIXUX = 'Maixux',
-  ARANTXA = 'Arantxa'
+  // ARANTXA = 'Arantxa' // Removed
 }
 
 export enum BookStatus {
@@ -44,7 +44,7 @@ export interface StatData {
   favoriteGenreName: string;
   favoriteGenrePercentage: number;
   monthlyComparisonPercentage: number;
-  // New fields for general statistics
+  // New general statistics
   totalBooksFinishedCurrentYear: number;
   daysSinceLastFinishedBook: number | null;
   mostProductiveMonth: string;

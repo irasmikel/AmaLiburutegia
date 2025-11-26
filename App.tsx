@@ -115,7 +115,7 @@ on conflict (name) do nothing;
 `;
 
 function App() {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(UserProfile.MAIXUX); // Default to Maixux
   const [view, setView] = useState<View>(View.DASHBOARD);
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(false);
@@ -298,6 +298,8 @@ function App() {
 
   // Renders
   if (!user) {
+    // This block will technically not be reached anymore as user is defaulted to MAIXUX
+    // but kept for robustness in case of future changes or direct state manipulation.
     return (
       <div className="min-h-screen bg-earth-50 flex items-center justify-center p-4">
         <div className="max-w-4xl w-full">
@@ -316,17 +318,6 @@ function App() {
                 </div>
                 <h2 className="text-2xl font-bold text-center text-earth-900">Maixux</h2>
                 <p className="text-center text-earth-500 mt-2">Entrar a mi biblioteca</p>
-            </button>
-
-            <button 
-                onClick={() => setUser(UserProfile.ARANTXA)}
-                className="group bg-white p-8 rounded-2xl shadow-sm border-2 border-transparent hover:border-earth-400 transition-all transform hover:-translate-y-1"
-            >
-                <div className="w-24 h-24 bg-stone-200 rounded-full mx-auto mb-6 flex items-center justify-center text-4xl group-hover:scale-110 transition-transform">
-                    👩‍💻
-                </div>
-                <h2 className="text-2xl font-bold text-center text-stone-900">Arantxa</h2>
-                <p className="text-center text-stone-500 mt-2">Entrar a mi biblioteca</p>
             </button>
           </div>
         </div>
@@ -404,13 +395,7 @@ function App() {
           <div className="flex items-center gap-4">
              <div className="flex items-center gap-2 px-3 py-1.5 bg-earth-100 rounded-full">
                 <span className="text-sm font-medium text-earth-800">{user}</span>
-                <button 
-                    onClick={() => setUser(null)}
-                    className="p-1 hover:bg-earth-200 rounded-full text-earth-600 transition-colors"
-                    title="Cambiar usuario"
-                >
-                    <LogOut size={14} />
-                </button>
+                {/* Removed the LogOut button as there's only one user now */}
              </div>
           </div>
         </div>
