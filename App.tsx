@@ -4,16 +4,14 @@ import * as DataService from './services/dataService';
 import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
 import Stats from './components/Stats';
-// import SharedFiles from './src/components/SharedFiles'; // Removed
 import CollapsibleSection from './src/components/CollapsibleSection';
-import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check } from 'lucide-react'; // Removed FolderOpen
+import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check, Star } from 'lucide-react';
 import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx';
 
 enum View {
   DASHBOARD = 'DASHBOARD',
   LIBRARY = 'LIBRARY',
   STATS = 'STATS',
-  // SHARED_FILES = 'SHARED_FILES' // Removed
 }
 
 // SQL for the user to copy if tables are missing
@@ -307,6 +305,17 @@ function App() {
   const finishedBooks = sortedAndFilteredBooks.filter(b => b.status === BookStatus.TERMINADO);
   const toReadBooks = sortedAndFilteredBooks.filter(b => b.status === BookStatus.POR_LEER);
 
+  // New derived state for books by rating
+  const booksByRating = useMemo(() => {
+    const ratings: Record<number, Book[]> = { 5: [], 4: [], 3: [], 2: [], 1: [] };
+    finishedBooks.forEach(book => {
+      if (book.rating && book.rating >= 1 && book.rating <= 5) {
+        ratings[book.rating].push(book);
+      }
+    });
+    return ratings;
+  }, [finishedBooks]);
+
 
   // Renders
   if (!user) {
@@ -468,6 +477,73 @@ function App() {
                             </div>
                          </div>
                      </div>
+
+                    {/* New: Books by Rating Section */}
+                    <div className="space-y-4">
+                        <h3 className="text-lg font-bold text-stone-800 flex items-center gap-2">
+                            <span className="w-2 h-6 bg-earth-500 rounded-full"></span>
+                            Calificaciones de Libros Terminados
+                        </h3>
+                        {finishedBooks.length === 0 ? (
+                            <div className="text-center py-8 text-stone-500">
+                                <AlertCircle size={24} className="mx-auto mb-2 text-stone-300" />
+                                <p className="text-sm">Aún no has terminado ningún libro para calificar.</p>
+                            </div>
+                        ) : (
+                            <>
+                                {Object.keys(booksByRating).sort((a, b) => Number(b) - Number(a)).map(ratingKey => {
+                                    const rating = Number(ratingKey);
+                                    const booksWithRating = booksByRating[rating];
+                                    if (booksWithRating.length === 0) return null; 
+
+                                    return (
+                                        <CollapsibleSection 
+                                            key={rating} 
+                                            title={
+                                                <span className="flex items-center gap-1">
+                                                    {rating} <Star size={18} className="text-amber-400 fill-amber-400" />
+                                                    {rating > 1 ? 'estrellas' : 'estrella'}
+                                                </span>
+                                            } 
+                                            count={booksWithRating.length}
+                                            initialOpen={false}
+                                        >
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4">
+                                                {booksWithRating.map(book => (
+                                                    <BookCard 
+                                                        key={book.id} 
+                                                        book={book} 
+                                                        onEdit={(b) => { setEditingBook(b); setIsFormOpen(true); }} 
+                                                        onDelete={(id) => handleDeleteBook(id)}
+                                                        onUpdateProgress={handleUpdateProgress}
+                                                    />
+                                                ))}
+                                            </div>
+                                        </CollapsibleSection>
+                                    );
+                                })}
+                                {finishedBooks.filter(b => !b.rating).length > 0 && (
+                                    <CollapsibleSection 
+                                        title="Sin Calificación" 
+                                        count={finishedBooks.filter(b => !b.rating).length}
+                                        initialOpen={false}
+                                    >
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pt-4">
+                                            {finishedBooks.filter(b => !b.rating).map(book => (
+                                                <BookCard 
+                                                    key={book.id} 
+                                                    book={book} 
+                                                    onEdit={(b) => { setEditingBook(b); setIsFormOpen(true); }} 
+                                                    onDelete={(id) => handleDeleteBook(id)}
+                                                    onUpdateProgress={handleUpdateProgress}
+                                                />
+                                            ))}
+                                        </div>
+                                    </CollapsibleSection>
+                                )}
+                            </>
+                        )}
+                    </div>
                 </div>
             )}
 
