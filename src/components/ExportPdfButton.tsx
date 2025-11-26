@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 import { Download, Loader2 } from 'lucide-react';
-import { Book, BookStatus } from '../types';
+import { Book, BookStatus } from '../../types'; // Ruta corregida
 import { showError, showSuccess } from '../utils/toast';
 
 interface ExportPdfButtonProps {
