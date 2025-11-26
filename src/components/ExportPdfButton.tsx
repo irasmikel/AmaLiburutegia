@@ -2,9 +2,9 @@
 
 import React, { useState } from 'react';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable'; // Importar para extender el prototipo de jsPDF
+import autoTable from 'jspdf-autotable'; // Importar autoTable como una función
 import { Download, Loader2 } from 'lucide-react';
-import { Book, BookStatus } from '../../types';
+import { Book, BookStatus } from '../../types'; // Ruta corregida
 import { showError, showSuccess } from '../utils/toast';
 
 interface ExportPdfButtonProps {
@@ -58,8 +58,7 @@ const ExportPdfButton: React.FC<ExportPdfButtonProps> = ({ books }) => {
           doc.text(`${rating} Estrella${rating > 1 ? 's' : ''} (${ratedBooks.length} libros)`, 14, yOffset);
           yOffset += 7;
 
-          // Llamar autoTable desde la instancia de doc
-          (doc as any).autoTable({ 
+          const tableResult = autoTable(doc, { // Llamar autoTable como función y capturar el resultado
             startY: yOffset,
             head: [['Título', 'Autor', 'Páginas', 'Género', 'Fecha Fin']],
             body: ratedBooks.map(book => [
@@ -80,8 +79,7 @@ const ExportPdfButton: React.FC<ExportPdfButtonProps> = ({ books }) => {
               doc.text(str, data.settings.margin.left, doc.internal.pageSize.height - 10);
             }
           });
-          // Acceder a previous desde doc.autoTable
-          yOffset = (doc as any).autoTable.previous.finalY + 10; 
+          yOffset = tableResult.finalY + 10; // Acceder a finalY desde el objeto retornado
         }
       }
 
@@ -95,8 +93,7 @@ const ExportPdfButton: React.FC<ExportPdfButtonProps> = ({ books }) => {
         doc.text(`Sin Calificación (${unratedBooks.length} libros)`, 14, yOffset);
         yOffset += 7;
 
-        // Llamar autoTable desde la instancia de doc
-        (doc as any).autoTable({ 
+        autoTable(doc, { // Llamar autoTable como función
           startY: yOffset,
           head: [['Título', 'Autor', 'Páginas', 'Género', 'Fecha Fin']],
           body: unratedBooks.map(book => [
