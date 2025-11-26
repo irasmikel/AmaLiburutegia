@@ -337,6 +337,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
     <div className="space-y-6 animate-fade-in pb-10">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-earth-800">Tus Estadísticas</h2>
+        <span style={{ color: 'red', fontWeight: 'bold' }}>TEST BUTTON HERE</span> {/* Added for debugging */}
         <button
           onClick={handleExportPdf}
           disabled={isExporting}
