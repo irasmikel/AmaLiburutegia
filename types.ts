@@ -1,11 +1,10 @@
 export enum UserProfile {
   MAIXUX = 'Maixux',
-  // ARANTXA = 'Arantxa' // Removed
+  ARANTXA = 'Arantza'
 }
 
 export enum BookStatus {
   POR_LEER = 'POR_LEER',
-  // LEYENDO = 'LEYENDO', // Removed
   TERMINADO = 'TERMINADO'
 }
 
@@ -66,14 +65,6 @@ export interface StatData {
   totalBooksFinishedPreviousYear: number; // Helper for pace improvement
   randomFact: string; // For "Sabías que..."
 }
-
-// export interface SharedFile { // Removed
-//   name: string;
-//   path: string;
-//   url: string;
-//   size?: number;
-//   createdAt?: string;
-// }
 
 export interface Genre {
   id: string;

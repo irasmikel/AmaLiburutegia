@@ -5,6 +5,7 @@ import BookCard from './components/BookCard';
 import BookForm from './components/BookForm';
 import Stats from './components/Stats';
 import CollapsibleSection from './src/components/CollapsibleSection';
+import AuthScreen from './src/components/AuthScreen'; // Import AuthScreen
 import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check, Star } from 'lucide-react';
 import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx';
 
@@ -113,7 +114,7 @@ on conflict (name) do nothing;
 `;
 
 function App() {
-  const [user, setUser] = useState<UserProfile | null>(UserProfile.MAIXUX);
+  const [user, setUser] = useState<UserProfile | null>(null); // Default to null for login screen
   const [view, setView] = useState<View>(View.DASHBOARD);
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(false);
@@ -136,7 +137,7 @@ function App() {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
-    if (user) {
+    if (user) { // Only fetch data if a user is logged in
       setLoading(true);
       setErrorMsg(null);
       setSetupRequired(false);
@@ -157,6 +158,9 @@ function App() {
           setLoading(false);
         });
         fetchAvailableGenres();
+    } else {
+      setBooks([]); // Clear books if no user is logged in
+      setAvailableGenres([]);
     }
   }, [user]);
 
@@ -257,6 +261,18 @@ function App() {
     showSuccess('SQL copiado al portapapeles.');
   };
 
+  const handleLogin = (loggedInUser: UserProfile) => {
+    setUser(loggedInUser);
+    setView(View.DASHBOARD); // Redirect to dashboard after login
+  };
+
+  const handleLogout = () => {
+    setUser(null);
+    setBooks([]); // Clear books on logout
+    setView(View.DASHBOARD); // Go back to dashboard (which will show login)
+    showSuccess('Sesión cerrada correctamente.');
+  };
+
   // Derived State: Filter and then Sort books
   const sortedAndFilteredBooks = useMemo(() => {
     let currentBooks = [...books];
@@ -319,7 +335,7 @@ function App() {
 
   // Renders
   if (!user) {
-    return null; // Should not be reached as user is defaulted
+    return <AuthScreen onLogin={handleLogin} />;
   }
 
   // Database Setup Screen
@@ -393,6 +409,13 @@ function App() {
              <div className="flex items-center gap-2 px-3 py-1.5 bg-earth-100 rounded-full">
                 <span className="text-sm font-medium text-earth-800">{user}</span>
              </div>
+             <button 
+                onClick={handleLogout}
+                className="p-2 hover:bg-earth-100 rounded-full transition-colors text-earth-700"
+                title="Cerrar Sesión"
+             >
+                <LogOut size={20} />
+             </button>
           </div>
         </div>
       </header>
