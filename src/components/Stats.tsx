@@ -5,21 +5,31 @@ import { Trophy, BookOpen, Layers, Clock, Users, Lightbulb, CalendarDays, BookCh
 
 interface StatsProps {
   books: Book[];
+  selectedYear: number | 'ALL';
 }
 
-const Stats: React.FC<StatsProps> = ({ books }) => {
+const Stats: React.FC<StatsProps> = ({ books, selectedYear }) => {
   const [randomFact, setRandomFact] = useState('');
 
   const calculateStats = (): StatData => {
-    const finishedBooks = books.filter(b => b.status === BookStatus.TERMINADO);
-    const toReadBooks = books.filter(b => b.status === BookStatus.POR_LEER);
+    // Filter books based on selectedYear at the very beginning
+    const filteredBooks = selectedYear === 'ALL'
+      ? books
+      : books.filter(book => {
+          const finishYear = book.finishDate ? new Date(book.finishDate).getFullYear() : null;
+          const creationYear = book.createdAt ? new Date(book.createdAt).getFullYear() : null;
+          return finishYear === selectedYear || creationYear === selectedYear;
+        });
+
+    const finishedBooks = filteredBooks.filter(b => b.status === BookStatus.TERMINADO);
+    const toReadBooks = filteredBooks.filter(b => b.status === BookStatus.POR_LEER);
 
     const totalPagesFinished = finishedBooks.reduce((acc, curr) => acc + curr.totalPages, 0);
-    const totalPagesOverall = books.reduce((acc, curr) => acc + curr.totalPages, 0); // Total pages of all books (including unfinished)
+    const totalPagesOverall = filteredBooks.reduce((acc, curr) => acc + curr.totalPages, 0); // Total pages of all books (including unfinished)
 
     // Genre Distribution
     const genreMap = new Map<string, number>();
-    books.forEach(b => {
+    filteredBooks.forEach(b => {
         if (b.genre) {
             genreMap.set(b.genre, (genreMap.get(b.genre) || 0) + 1);
         }
@@ -41,15 +51,39 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
         .sort((a, b) => b.count - a.count)
         .slice(0, 5); // Top 5 authors
 
-    // Monthly Progress (Books finished per month for the last 12 months)
+    // Monthly Progress (Books finished per month)
     const monthlyCounts = new Map<string, number>();
     const now = new Date();
     const monthNames = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
-    // Initialize for last 12 months
+    let startMonthIndex: number;
+    let startYear: number;
+    let endMonthIndex: number;
+    let endYear: number;
+
+    if (selectedYear === 'ALL') {
+        // Last 12 months relative to now
+        endYear = now.getFullYear();
+        endMonthIndex = now.getMonth();
+        startYear = now.getFullYear() - 1;
+        startMonthIndex = (now.getMonth() + 1) % 12; // Start from the month after 12 months ago
+    } else {
+        // All months for the selected year
+        startYear = selectedYear;
+        startMonthIndex = 0; // January
+        endYear = selectedYear;
+        endMonthIndex = 11; // December
+    }
+
+    // Initialize for the relevant months
     for (let i = 0; i < 12; i++) {
-        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const monthYear = `${monthNames[d.getMonth()]} ${d.getFullYear() % 100}`; // e.g., "Oct 23"
+        let d: Date;
+        if (selectedYear === 'ALL') {
+            d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1);
+        } else {
+            d = new Date(selectedYear, i, 1);
+        }
+        const monthYear = `${monthNames[d.getMonth()]} ${d.getFullYear() % 100}`;
         monthlyCounts.set(monthYear, 0);
     }
 
@@ -57,13 +91,12 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
         if (b.finishDate) {
             const finishDate = new Date(b.finishDate);
             const monthYear = `${monthNames[finishDate.getMonth()]} ${finishDate.getFullYear() % 100}`;
-            if (monthlyCounts.has(monthYear)) { // Only count if within the last 12 months initialized
+            if (monthlyCounts.has(monthYear)) {
                 monthlyCounts.set(monthYear, monthlyCounts.get(monthYear)! + 1);
             }
         }
     });
 
-    // Sort monthly progress to be chronological
     const monthlyProgress = Array.from(monthlyCounts.entries())
         .map(([name, count]) => ({ name, count }))
         .sort((a, b) => {
@@ -75,7 +108,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
         });
 
     // --- Datos Curiosos Calculations ---
-    const totalBooksInLibrary = books.length;
+    const totalBooksInLibrary = filteredBooks.length;
 
     // 1. "Si pusieras todos los libros en fila medirían X metros"
     const pageThicknessMm = 0.1; // Average thickness per page
@@ -111,21 +144,21 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
     }
 
     // --- General Statistics Calculations ---
-    const currentYear = now.getFullYear();
-    const totalBooksFinishedCurrentYear = finishedBooks.filter(b => 
-      b.finishDate && new Date(b.finishDate).getFullYear() === currentYear
+    const currentYearForStats = selectedYear === 'ALL' ? now.getFullYear() : selectedYear;
+    const totalBooksFinishedSelectedYear = finishedBooks.filter(b => 
+      b.finishDate && new Date(b.finishDate).getFullYear() === currentYearForStats
     ).length;
 
-    const totalBooksFinishedPreviousYear = finishedBooks.filter(b => 
-      b.finishDate && new Date(b.finishDate).getFullYear() === currentYear - 1
+    const totalBooksFinishedPreviousToSelectedYear = finishedBooks.filter(b => 
+      b.finishDate && new Date(b.finishDate).getFullYear() === (currentYearForStats as number) - 1
     ).length;
 
     let daysSinceFirstBook = 0;
 
     const totalPagesReadIncludingInProgress = totalPagesFinished; // Only finished books now
 
-    if (books.length > 0) {
-      const firstBookDate = new Date(books.reduce((min, b) => new Date(b.createdAt) < new Date(min) ? b.createdAt : min, books[0].createdAt));
+    if (filteredBooks.length > 0) {
+      const firstBookDate = new Date(filteredBooks.reduce((min, b) => new Date(b.createdAt) < new Date(min) ? b.createdAt : min, filteredBooks[0].createdAt));
       const diffTime = now.getTime() - firstBookDate.getTime(); // Difference in milliseconds
 
       if (diffTime > 0) {
@@ -168,7 +201,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       : null;
 
     // "Has viajado por X países a través de tus autores" (simplified to unique authors)
-    const uniqueAuthors = new Set(books.map(b => b.author).filter(Boolean));
+    const uniqueAuthors = new Set(filteredBooks.map(b => b.author).filter(Boolean));
     const uniqueAuthorsCount = uniqueAuthors.size;
 
     // "El libro más largo que leíste tenía X páginas, el más corto Y páginas"
@@ -216,9 +249,9 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
 
     // "Has mejorado tu ritmo un X% respecto al año pasado"
     let paceImprovementPercentage: number | null = null;
-    if (totalBooksFinishedPreviousYear > 0) {
-        paceImprovementPercentage = ((totalBooksFinishedCurrentYear - totalBooksFinishedPreviousYear) / totalBooksFinishedPreviousYear) * 100;
-    } else if (totalBooksFinishedCurrentYear > 0) {
+    if (totalBooksFinishedPreviousToSelectedYear > 0) {
+        paceImprovementPercentage = ((totalBooksFinishedSelectedYear - totalBooksFinishedPreviousToSelectedYear) / totalBooksFinishedPreviousToSelectedYear) * 100;
+    } else if (totalBooksFinishedSelectedYear > 0) {
         paceImprovementPercentage = 100;
     }
 
@@ -239,11 +272,11 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       favoriteGenrePercentage,
       monthlyComparisonPercentage,
       // New general statistics
-      totalBooksFinishedCurrentYear,
+      totalBooksFinishedCurrentYear: totalBooksFinishedSelectedYear, // Renamed for clarity
       daysSinceLastFinishedBook,
       mostProductiveMonth,
-      avgPagesPerMonth: null, // Removed calculation
-      avgPagesPerDay: null,   // Removed calculation
+      avgPagesPerMonth: null, 
+      avgPagesPerDay: null,   
       avgDaysPerBookFinished,
       uniqueAuthorsCount,
       longestBookPages,
@@ -257,32 +290,40 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       longestTimeWithoutFinishingBookDays,
       recordBooksInMonth,
       paceImprovementPercentage,
-      totalBooksFinishedPreviousYear,
+      totalBooksFinishedPreviousYear: totalBooksFinishedPreviousToSelectedYear, // Renamed for clarity
       randomFact: '', // Will be set by useEffect
     };
   };
 
-  const stats = useMemo(() => calculateStats(), [books]);
+  const stats = useMemo(() => calculateStats(), [books, selectedYear]);
   const COLORS = ['#b5763e', '#c28e50', '#d1aa78', '#e0c7a8', '#ede0d4']; // Earthy tones
 
   // "Sabías que..." facts
-  const funFactsList = useMemo(() => [
-    `Sabías que has leído un total de ${stats.totalBooks} libros. ¡Impresionante!`,
-    `Tu género favorito es "${stats.favoriteGenreName}", representando el ${stats.favoriteGenrePercentage.toFixed(1)}% de tu biblioteca.`,
-    stats.longestBookPages ? `El libro más largo que has leído tenía ${stats.longestBookPages} páginas.` : null,
-    stats.shortestBookPages ? `El libro más corto que has leído tenía ${stats.shortestBookPages} páginas.` : null,
-    stats.avgPagesPerBookFinished ? `En promedio, cada libro que terminas tiene ${stats.avgPagesPerBookFinished.toFixed(0)} páginas.` : null,
-    stats.bestMonthName !== 'N/A' ? `Tu mes más productivo fue ${stats.bestMonthName}, donde terminaste ${stats.bestMonthBooks} libros.` : null,
-    stats.recordBooksInMonth > 0 ? `Tu récord de libros terminados en un mes es de ${stats.recordBooksInMonth}.` : null,
-    stats.uniqueAuthorsCount > 0 ? `Has descubierto ${stats.uniqueAuthorsCount} autores únicos en tu viaje literario.` : null,
-    stats.avgDaysPerBookFinished ? `Lees un libro cada ${stats.avgDaysPerBookFinished.toFixed(1)} días de media.` : null,
-    stats.longestTimeWithoutFinishingBookDays !== null ? `Tu racha más larga sin terminar un libro fue de ${stats.longestTimeWithoutFinishingBookDays} días.` : null,
-  ].filter(Boolean) as string[], [stats]);
+  const funFactsList = useMemo(() => {
+    const yearText = selectedYear === 'ALL' ? 'todos los años' : `el año ${selectedYear}`;
+    const previousYearText = selectedYear === 'ALL' ? 'el año pasado' : `el año ${Number(selectedYear) - 1}`;
+
+    return [
+      `Sabías que has leído un total de ${stats.totalBooks} libros ${yearText}. ¡Impresionante!`,
+      `Tu género favorito es "${stats.favoriteGenreName}", representando el ${stats.favoriteGenrePercentage.toFixed(1)}% de tu biblioteca ${yearText}.`,
+      stats.longestBookPages ? `El libro más largo que has leído ${yearText} tenía ${stats.longestBookPages} páginas.` : null,
+      stats.shortestBookPages ? `El libro más corto que has leído ${yearText} tenía ${stats.shortestBookPages} páginas.` : null,
+      stats.avgPagesPerBookFinished ? `En promedio, cada libro que terminas ${yearText} tiene ${stats.avgPagesPerBookFinished.toFixed(0)} páginas.` : null,
+      stats.bestMonthName !== 'N/A' ? `Tu mes más productivo ${yearText} fue ${stats.bestMonthName}, donde terminaste ${stats.bestMonthBooks} libros.` : null,
+      stats.recordBooksInMonth > 0 ? `Tu récord de libros terminados en un mes ${yearText} es de ${stats.recordBooksInMonth}.` : null,
+      stats.uniqueAuthorsCount > 0 ? `Has descubierto ${stats.uniqueAuthorsCount} autores únicos en tu viaje literario ${yearText}.` : null,
+      stats.avgDaysPerBookFinished ? `Lees un libro cada ${stats.avgDaysPerBookFinished.toFixed(1)} días de media ${yearText}.` : null,
+      stats.longestTimeWithoutFinishingBookDays !== null ? `Tu racha más larga sin terminar un libro ${yearText} fue de ${stats.longestTimeWithoutFinishingBookDays} días.` : null,
+      stats.paceImprovementPercentage !== null ? `Has ${stats.paceImprovementPercentage >= 0 ? 'mejorado' : 'disminuido'} tu ritmo un ${Math.abs(stats.paceImprovementPercentage).toFixed(1)}% respecto a ${previousYearText}.` : null,
+    ].filter(Boolean) as string[];
+  }, [stats, selectedYear]);
 
   useEffect(() => {
     if (funFactsList.length > 0) {
       const randomIndex = Math.floor(Math.random() * funFactsList.length);
       setRandomFact(funFactsList[randomIndex]);
+    } else {
+      setRandomFact(''); // Clear fact if no books for selected year
     }
   }, [funFactsList]);
 
@@ -310,7 +351,6 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
                 <Layers size={24} />
             </div>
         </div>
-        {/* Removed "Leyendo" card */}
         <div className="bg-white p-5 rounded-xl border border-stone-100 shadow-sm flex items-center justify-between">
             <div>
                 <p className="text-stone-500 text-sm font-medium">Pendientes</p>
@@ -333,13 +373,13 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       {/* General Statistics */}
       <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
         <h3 className="text-lg font-bold text-stone-800 mb-6 flex items-center gap-2">
-          <BookCheck size={20} className="text-earth-600" /> Estadísticas Generales
+          <BookCheck size={20} className="text-earth-600" /> Estadísticas Generales {selectedYear !== 'ALL' ? `(${selectedYear})` : '(Total)'}
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-stone-700">
           <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
             <Trophy size={20} className="text-amber-500" />
             <div>
-              <p className="text-sm font-medium">Libros Leídos (Año Actual)</p>
+              <p className="text-sm font-medium">Libros Leídos {selectedYear === 'ALL' ? '(Total)' : `(${selectedYear})`}</p>
               <p className="font-bold text-lg">{stats.totalBooksFinishedCurrentYear}</p>
             </div>
           </div>
@@ -357,8 +397,6 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
               <p className="font-bold text-lg">{stats.mostProductiveMonth}</p>
             </div>
           </div>
-          {/* Removed Páginas/Mes */}
-          {/* Removed Páginas/Día */}
           <div className="flex items-center gap-3 p-3 bg-stone-50 rounded-lg">
             <BookMarked size={20} className="text-green-500" />
             <div>
@@ -386,7 +424,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       {/* Datos Curiosos */}
       <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
         <h3 className="text-lg font-bold text-stone-800 mb-6 flex items-center gap-2">
-          <Lightbulb size={20} className="text-earth-600" /> Más Datos Curiosos
+          <Lightbulb size={20} className="text-earth-600" /> Más Datos Curiosos {selectedYear !== 'ALL' ? `(${selectedYear})` : '(Total)'}
         </h3>
         <ul className="space-y-3 text-stone-700">
           <li>
@@ -442,10 +480,10 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       {/* Resumen Anual (Spotify Wrapped style) */}
       <div className="bg-gradient-to-br from-earth-700 to-earth-900 rounded-2xl p-8 text-white shadow-xl">
         <h3 className="text-3xl font-bold mb-6 flex items-center gap-3">
-          <Award size={32} className="text-amber-300" /> Tu Resumen Anual {new Date().getFullYear()}
+          <Award size={32} className="text-amber-300" /> Tu Resumen {selectedYear !== 'ALL' ? `del ${selectedYear}` : 'Total'}
         </h3>
         <div className="space-y-4 text-lg">
-          <p>¡Este año ha sido increíble para tu biblioteca!</p>
+          <p>¡Este {selectedYear === 'ALL' ? 'periodo' : 'año'} ha sido increíble para tu biblioteca!</p>
           <p>Has terminado un total de <span className="font-bold text-amber-300">{stats.totalBooksFinishedCurrentYear}</span> libros.</p>
           {stats.bestMonthName !== 'N/A' && (
             <p>Tu mes estrella fue <span className="font-bold text-amber-300">{stats.bestMonthName}</span>, donde leíste <span className="font-bold text-amber-300">{stats.bestMonthBooks}</span> libros.</p>
@@ -465,7 +503,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
-            <h3 className="text-lg font-bold text-stone-800 mb-6">Géneros Favoritos</h3>
+            <h3 className="text-lg font-bold text-stone-800 mb-6">Géneros Favoritos {selectedYear !== 'ALL' ? `(${selectedYear})` : '(Total)'}</h3>
             <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={stats.genreDistribution} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
@@ -486,7 +524,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
         </div>
 
         <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm">
-             <h3 className="text-lg font-bold text-stone-800 mb-6">Autores Más Leídos</h3>
+             <h3 className="text-lg font-bold text-stone-800 mb-6">Autores Más Leídos {selectedYear !== 'ALL' ? `(${selectedYear})` : '(Total)'}</h3>
              <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={stats.topAuthors} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
@@ -507,7 +545,7 @@ const Stats: React.FC<StatsProps> = ({ books }) => {
         </div>
 
         <div className="bg-white p-6 rounded-xl border border-stone-100 shadow-sm lg:col-span-2">
-             <h3 className="text-lg font-bold text-stone-800 mb-6">Libros Leídos por Mes (Últimos 12 meses)</h3>
+             <h3 className="text-lg font-bold text-stone-800 mb-6">Libros Leídos por Mes {selectedYear !== 'ALL' ? `(${selectedYear})` : '(Últimos 12 meses)'}</h3>
              <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                     <LineChart

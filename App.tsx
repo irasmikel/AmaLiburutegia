@@ -122,6 +122,11 @@ function App() {
   const [setupRequired, setSetupRequired] = useState(false);
   const [copied, setCopied] = useState(false);
   
+  // Year filter state
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<number | 'ALL'>(currentYear);
+  const [availableYears, setAvailableYears] = useState<(number | 'ALL')[]>([]);
+
   // Modals
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | undefined>(undefined);
@@ -163,6 +168,29 @@ function App() {
       setAvailableGenres([]);
     }
   }, [user]);
+
+  // Effect to update available years and set default selected year
+  useEffect(() => {
+    const years = new Set<number>();
+    books.forEach(book => {
+      if (book.finishDate) {
+        years.add(new Date(book.finishDate).getFullYear());
+      }
+      if (book.createdAt) {
+        years.add(new Date(book.createdAt).getFullYear());
+      }
+    });
+    const sortedYears = Array.from(years).sort((a, b) => b - a);
+    setAvailableYears(['ALL', ...sortedYears]);
+
+    // Set default to current year if it exists, otherwise 'ALL'
+    if (!sortedYears.includes(currentYear) && selectedYear === currentYear) {
+        setSelectedYear('ALL');
+    } else if (sortedYears.includes(currentYear) && selectedYear === 'ALL') {
+        setSelectedYear(currentYear);
+    }
+  }, [books, currentYear]);
+
 
   const fetchAvailableGenres = async () => {
     try {
@@ -273,9 +301,22 @@ function App() {
     showSuccess('Sesión cerrada correctamente.');
   };
 
+  // Filter books by selected year first
+  const booksFilteredByYear = useMemo(() => {
+    if (selectedYear === 'ALL') {
+      return books;
+    }
+    return books.filter(book => {
+      const finishYear = book.finishDate ? new Date(book.finishDate).getFullYear() : null;
+      const creationYear = book.createdAt ? new Date(book.createdAt).getFullYear() : null;
+      return finishYear === selectedYear || creationYear === selectedYear;
+    });
+  }, [books, selectedYear]);
+
+
   // Derived State: Filter and then Sort books
   const sortedAndFilteredBooks = useMemo(() => {
-    let currentBooks = [...books];
+    let currentBooks = [...booksFilteredByYear]; // Use year-filtered books
 
     currentBooks = currentBooks.filter(b => {
         const matchesSearch = b.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -315,7 +356,7 @@ function App() {
     });
 
     return currentBooks;
-  }, [books, searchTerm, filterStatus, filterGenre, sortField, sortDirection]);
+  }, [booksFilteredByYear, searchTerm, filterStatus, filterGenre, sortField, sortDirection]);
 
   // No longer tracking "reading" books separately for dashboard
   const finishedBooks = sortedAndFilteredBooks.filter(b => b.status === BookStatus.TERMINADO);
@@ -406,6 +447,19 @@ function App() {
           </div>
           
           <div className="flex items-center gap-4">
+             {/* Year Selector */}
+             <select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
+                className="px-3 py-1.5 bg-earth-100 border border-earth-200 rounded-lg text-sm text-earth-700 focus:outline-none"
+             >
+                {availableYears.map(year => (
+                    <option key={year} value={year}>
+                        {year === 'ALL' ? 'Total' : year}
+                    </option>
+                ))}
+             </select>
+
              <div className="flex items-center gap-2 px-3 py-1.5 bg-earth-100 rounded-full">
                 <span className="text-sm font-medium text-earth-800">{user}</span>
              </div>
@@ -485,17 +539,17 @@ function App() {
                          <div className="flex justify-between items-center mb-4">
                             <h3 className="text-lg font-bold text-stone-800 flex items-center gap-2">
                                 <span className="w-2 h-6 bg-earth-500 rounded-full"></span>
-                                Resumen Rápido
+                                Resumen Rápido {selectedYear !== 'ALL' ? `(${selectedYear})` : '(Total)'}
                             </h3>
                             <button onClick={() => setView(View.STATS)} className="text-sm text-earth-600 hover:underline">Ver todo</button>
                          </div>
                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <div className="bg-white p-4 rounded-xl border border-stone-100 text-center">
-                                <p className="text-3xl font-bold text-stone-800">{books.filter(b => b.status === BookStatus.TERMINADO).length}</p>
+                                <p className="text-3xl font-bold text-stone-800">{finishedBooks.length}</p>
                                 <p className="text-xs text-stone-500 uppercase tracking-wider mt-1">Leídos</p>
                             </div>
                             <div className="bg-white p-4 rounded-xl border border-stone-100 text-center">
-                                <p className="text-3xl font-bold text-stone-800">{books.filter(b => b.status === BookStatus.POR_LEER).length}</p>
+                                <p className="text-3xl font-bold text-stone-800">{toReadBooks.length}</p>
                                 <p className="text-xs text-stone-500 uppercase tracking-wider mt-1">Pendientes</p>
                             </div>
                          </div>
@@ -505,12 +559,12 @@ function App() {
                     <div className="space-y-4">
                         <h3 className="text-lg font-bold text-stone-800 flex items-center gap-2">
                             <span className="w-2 h-6 bg-earth-500 rounded-full"></span>
-                            Calificaciones de Libros Terminados
+                            Calificaciones de Libros Terminados {selectedYear !== 'ALL' ? `(${selectedYear})` : '(Total)'}
                         </h3>
                         {finishedBooks.length === 0 ? (
                             <div className="text-center py-8 text-stone-500">
                                 <AlertCircle size={24} className="mx-auto mb-2 text-stone-300" />
-                                <p className="text-sm">Aún no has terminado ningún libro para calificar.</p>
+                                <p className="text-sm">Aún no has terminado ningún libro para calificar en {selectedYear === 'ALL' ? 'todos los años' : `el año ${selectedYear}`}.</p>
                             </div>
                         ) : (
                             <>
@@ -681,7 +735,7 @@ function App() {
             )}
 
             {view === View.STATS && (
-                <Stats books={books} />
+                <Stats books={booksFilteredByYear} selectedYear={selectedYear} />
             )}
         </div>
 
