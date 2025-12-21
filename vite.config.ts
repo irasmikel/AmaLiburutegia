@@ -18,9 +18,6 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
-      },
-      optimizeDeps: {
-        include: ['jspdf-autotable'], // Asegura que Vite pre-optimice esta dependencia
-      },
+      }
     };
 });
