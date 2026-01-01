@@ -6,8 +6,7 @@ import BookForm from './components/BookForm';
 import Stats from './components/Stats';
 import CollapsibleSection from './src/components/CollapsibleSection';
 import AuthScreen from './src/components/AuthScreen'; // Import AuthScreen
-import ExportModal from './src/components/ExportModal'; // Import ExportModal
-import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check, Star, Download } from 'lucide-react';
+import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check, Star } from 'lucide-react';
 import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx';
 
 enum View {
@@ -131,7 +130,6 @@ function App() {
   // Modals
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingBook, setEditingBook] = useState<Book | undefined>(undefined);
-  const [isExportModalOpen, setIsExportModalOpen] = useState(false); // New state for export modal
 
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -676,14 +674,6 @@ function App() {
                                 <option value="desc">Descendente</option>
                                 <option value="asc">Ascendente</option>
                             </select>
-                            <button 
-                                onClick={() => setIsExportModalOpen(true)}
-                                className="px-3 py-2 bg-earth-600 text-white rounded-lg font-medium shadow-md hover:bg-earth-700 transition-all flex items-center justify-center gap-2"
-                                title="Exportar libros"
-                            >
-                                <Download size={18} />
-                                <span className="hidden md:inline">Exportar</span>
-                            </button>
                         </div>
                     </div>
 
@@ -751,21 +741,13 @@ function App() {
 
       </main>
 
-      {/* Modals */}
+      {/* Modal */}
       {isFormOpen && user && (
         <BookForm 
             userId={user} 
             initialData={editingBook} 
             onClose={() => { setIsFormOpen(false); setEditingBook(undefined); }} 
             onSave={handleSaveBook}
-        />
-      )}
-
-      {isExportModalOpen && user && (
-        <ExportModal
-          allBooks={books}
-          filteredBooks={sortedAndFilteredBooks}
-          onClose={() => setIsExportModalOpen(false)}
         />
       )}
 
