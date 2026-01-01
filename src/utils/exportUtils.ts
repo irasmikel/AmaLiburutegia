@@ -1,4 +1,6 @@
-import jsPDF from 'jspdf'; // Cambiado a importación por defecto
+import { Book } from '../../types';
+import * as XLSX from 'xlsx';
+import { jsPDF } from 'jspdf';
 import 'jspdf-autotable';
 
 // Helper to format dates for export
