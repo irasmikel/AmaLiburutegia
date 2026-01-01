@@ -180,15 +180,17 @@ function App() {
         years.add(new Date(book.createdAt).getFullYear());
       }
     });
-    const sortedYears = Array.from(years).sort((a, b) => b - a);
-    setAvailableYears(['ALL', ...sortedYears]);
+    const sortedYears = Array.from(years).sort((a, b) => b - a); // Descending order
 
-    // Set default to current year if it exists, otherwise 'ALL'
-    if (!sortedYears.includes(currentYear) && selectedYear === currentYear) {
-        setSelectedYear('ALL');
-    } else if (sortedYears.includes(currentYear) && selectedYear === 'ALL') {
-        setSelectedYear(currentYear);
+    let defaultYear: number | 'ALL' = currentYear; // Default to current year
+
+    if (sortedYears.length > 0) {
+      // If there are books, default to the latest year present in the data
+      defaultYear = sortedYears[0]; 
     }
+    
+    setAvailableYears(['ALL', ...sortedYears]);
+    setSelectedYear(defaultYear); 
   }, [books, currentYear]);
 
 
