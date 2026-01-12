@@ -6,7 +6,6 @@ import BookForm from './components/BookForm';
 import Stats from './components/Stats';
 import CollapsibleSection from './src/components/CollapsibleSection';
 import AuthScreen from './src/components/AuthScreen'; // Import AuthScreen
-import PdfReportGenerator from './src/components/PdfReportGenerator'; // Import PdfReportGenerator
 import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check, Star } from 'lucide-react';
 import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx';
 
@@ -738,12 +737,7 @@ function App() {
             )}
 
             {view === View.STATS && (
-                <>
-                    <div className="flex justify-end mb-6">
-                        <PdfReportGenerator books={books} selectedYear={selectedYear} />
-                    </div>
-                    <Stats books={booksFilteredByYear} selectedYear={selectedYear} />
-                </>
+                <Stats books={booksFilteredByYear} selectedYear={selectedYear} />
             )}
         </div>
 
