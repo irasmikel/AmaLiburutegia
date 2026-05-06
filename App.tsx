@@ -12,7 +12,7 @@ import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx'
 enum View {
   DASHBOARD = 'DASHBOARD',
   LIBRARY = 'LIBRARY',
-  STATS = 'STATS',
+  STATS = 'STATATS',
 }
 
 // SQL for the user to copy if tables are missing
@@ -301,6 +301,25 @@ function App() {
     setBooks([]); // Clear books on logout
     setView(View.DASHBOARD); // Go back to dashboard (which will show login)
     showSuccess('Sesión cerrada correctamente.');
+  };
+
+  // Keep-alive function
+  const keepAlive = async () => {
+    try {
+      // This simple query will keep the database connection alive
+      const { data, error } = await DataService.supabase
+        .from('books')
+        .select('count')
+        .limit(1);
+      
+      if (error) {
+        console.error('Keep-alive error:', error);
+      } else {
+        console.log('Keep-alive successful');
+      }
+    } catch (err) {
+      console.error('Keep-alive failed:', err);
+    }
   };
 
   // Filter books by selected year first
