@@ -1,7 +1,7 @@
 "use client";
 
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { Book, BookStatus, UserProfile } from '../../types';
 
 export const generateBooksReport = (user: UserProfile, books: Book[]) => {
@@ -45,12 +45,13 @@ export const generateBooksReport = (user: UserProfile, books: Book[]) => {
     book.finishDate ? new Date(book.finishDate).toLocaleDateString() : '-'
   ]);
 
-  (doc as any).autoTable({
+  // Usar la función autoTable importada directamente
+  autoTable(doc, {
     head: [tableColumn],
     body: tableRows,
     startY: 85,
     theme: 'striped',
-    headStyles: { fillColor: primaryColor },
+    headStyles: { fillColor: primaryColor as any },
     styles: { fontSize: 9, cellPadding: 3 },
     columnStyles: {
       0: { cellWidth: 50 },
@@ -59,7 +60,7 @@ export const generateBooksReport = (user: UserProfile, books: Book[]) => {
   });
 
   // Pie de página
-  const pageCount = (doc as any).internal.getNumberOfPages();
+  const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
     doc.setFontSize(10);
