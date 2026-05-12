@@ -6,8 +6,9 @@ import BookForm from './components/BookForm';
 import Stats from './components/Stats';
 import CollapsibleSection from './src/components/CollapsibleSection';
 import AuthScreen from './src/components/AuthScreen'; // Import AuthScreen
-import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check, Star } from 'lucide-react';
+import { Book as BookIcon, BarChart2, Plus, LogOut, Search, Filter, LayoutGrid, AlertCircle, Database, Copy, Check, Star, Download } from 'lucide-react';
 import { showSuccess, showError, showConfirmation } from './src/utils/toast.tsx';
+import { generateBooksReport } from './src/services/pdfService';
 
 enum View {
   DASHBOARD = 'DASHBOARD',
@@ -303,6 +304,15 @@ function App() {
     showSuccess('Sesión cerrada correctamente.');
   };
 
+  const handleDownloadReport = () => {
+    if (user && books.length > 0) {
+      generateBooksReport(user, books);
+      showSuccess('Generando informe PDF...');
+    } else {
+      showError('No hay datos suficientes para generar el informe.');
+    }
+  };
+
   // Keep-alive function
   const keepAlive = async () => {
     try {
@@ -467,12 +477,12 @@ function App() {
             <span className="font-serif font-bold text-xl text-earth-900 hidden sm:inline">Liburutegia</span>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
              {/* Year Selector */}
              <select
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(e.target.value === 'ALL' ? 'ALL' : Number(e.target.value))}
-                className="px-3 py-1.5 bg-earth-100 border border-earth-200 rounded-lg text-sm text-earth-700 focus:outline-none"
+                className="px-2 sm:px-3 py-1.5 bg-earth-100 border border-earth-200 rounded-lg text-xs sm:text-sm text-earth-700 focus:outline-none"
              >
                 {availableYears.map(year => (
                     <option key={year} value={year}>
@@ -481,7 +491,15 @@ function App() {
                 ))}
              </select>
 
-             <div className="flex items-center gap-2 px-3 py-1.5 bg-earth-100 rounded-full">
+             <button 
+                onClick={handleDownloadReport}
+                className="p-2 hover:bg-earth-100 rounded-full transition-colors text-earth-700"
+                title="Descargar Informe PDF"
+             >
+                <Download size={20} />
+             </button>
+
+             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-earth-100 rounded-full">
                 <span className="text-sm font-medium text-earth-800">{user}</span>
              </div>
              <button 
